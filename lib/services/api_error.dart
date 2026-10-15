@@ -13,12 +13,13 @@ String apiErrorMessage(http.Response response) {
             .expand((values) => values.whereType<String>())
             .take(5)
             .toList();
-        if (messages.isNotEmpty)
+        if (messages.isNotEmpty) {
           return messages
               .map(
                 (value) => value.length > 200 ? value.substring(0, 200) : value,
               )
               .join('\n');
+        }
       }
     } catch (_) {
       /* Never display raw HTML or server traces. */
@@ -30,6 +31,7 @@ String apiErrorMessage(http.Response response) {
     403 => 'This action is not allowed for your account or assigned task.',
     404 => 'This item is no longer available. Refresh and retry.',
     409 => 'This task has changed or was accepted by another rider. Refresh and retry.',
+    413 => 'This upload exceeds the server limit. Use a smaller file or contact your sorting center.',
     429 => 'Too many requests. Wait a moment before trying again.',
     _ => 'The service could not complete this request. Please retry shortly.',
   };

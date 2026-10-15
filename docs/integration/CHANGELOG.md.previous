@@ -1,6 +1,6 @@
 # Integration changelog
 
-Checkpoint: 2026-10-14T20:25:26.093Z
+Checkpoint: 2026-10-15T10:22:06.584Z
 
 - 2026-10-14T20:16:28.225Z: Initialized durable recovery from verified existing Phases 1-3; prior interrupted turn started no tool operations. No commit or push.
 - 2026-10-14T20:17:41.756Z: Initialized durable recovery from verified existing Phases 1-3; prior interrupted turn started no tool operations. No commit or push.
@@ -12,3 +12,103 @@ Checkpoint: 2026-10-14T20:25:26.093Z
 - 2026-10-14T20:23:34.938Z: rider: flutter test --no-pub test/registration_api_test.dart test/widget_test.dart passed
 - 2026-10-14T20:25:14.831Z: alona: php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Feature/PartnerOnboardingTest.php tests/Feature/PhilippineAddressTest.php tests/Feature/DeliveryCoverageTest.php passed
 - 2026-10-14T20:25:25.589Z: rider: flutter analyze --no-pub --no-fatal-infos lib/pages/registration_page.dart lib/services/registration_api.dart lib/services/api_error.dart test/registration_api_test.dart passed
+- 2026-10-14T20:25:26.828Z: rider: node --test scripts/integration_checkpoint.test.cjs passed
+- 2026-10-15T00:05:24.169Z: Resumed verified recovery; Rider now Git-tracked on master at 99d7363; no automatic commit
+- 2026-10-15T00:05:25.981Z: rider: node --test scripts/integration_checkpoint.test.cjs passed
+- 2026-10-15T00:06:43.993Z: Phase 4 completed from verified existing source and retained passing test evidence; no repeated implementation or commit
+- 2026-10-15T00:06:44.757Z: Started Phase 5; pickup backend routes/ownership/state transitions already exist and will be reused
+- 2026-10-15T00:07:27.408Z: Saved complete pickup edit batch; repaired local edit-script interpolation failure without changing backend data
+- 2026-10-15T00:08:04.362Z: Saved pickup acceptance/completion and conflict/duplicate-tap regression tests
+- 2026-10-15T00:08:07.490Z: rider: dart format lib/pages/pickup_dashboard_page.dart lib/services/rider_session.dart test/pickup_workflow_test.dart passed
+- 2026-10-15T00:08:59.217Z: rider: flutter test --no-pub test/pickup_workflow_test.dart test/rider_session_test.dart failed/unknown
+- 2026-10-15T00:09:44.375Z: rider: flutter test --no-pub test/pickup_workflow_test.dart passed
+- 2026-10-15T00:11:00.412Z: alona: php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Feature/Logistics/RiderPickupFlowTest.php tests/Feature/Logistics/PickupRequestApprovalTest.php passed
+- 2026-10-15T00:11:54.990Z: rider: flutter analyze --no-pub --no-fatal-infos lib/pages/pickup_dashboard_page.dart lib/services/rider_session.dart test/pickup_workflow_test.dart passed
+- 2026-10-15T00:12:43.294Z: Phase 5 completed; retained Phase 3 tests pass, pickup widget and Laravel workflow checks pass
+- 2026-10-15T00:12:43.978Z: Started Phase 6 before cross-project proof/delivery changes
+- 2026-10-15T00:13:23.055Z: Saved byte-based proof upload and proof-required completion guards; existing delivery list now returns rider-owned proof state
+- 2026-10-15T00:13:23.855Z: Saved delivery start/completion, proof gating, failure reason and multipart regression tests
+- 2026-10-15T00:13:26.660Z: rider: dart format lib/pages/delivery_dashboard_page.dart lib/pages/proof_capture_page.dart lib/services/rider_session.dart test/delivery_workflow_test.dart passed
+- 2026-10-15T00:13:40.031Z: rider: flutter test --no-pub test/delivery_workflow_test.dart failed/unknown
+- 2026-10-15T00:14:55.941Z: rider: flutter test --no-pub test/delivery_workflow_test.dart failed/unknown
+- 2026-10-15T00:16:21.768Z: rider: flutter test --no-pub test/delivery_workflow_test.dart passed
+- 2026-10-15T00:16:27.807Z: alona: php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Feature/Logistics/RiderDeliveryCompletionTest.php passed
+- 2026-10-15T00:16:35.745Z: rider: flutter analyze --no-pub --no-fatal-infos lib/pages/delivery_dashboard_page.dart lib/pages/proof_capture_page.dart lib/services/rider_session.dart test/delivery_workflow_test.dart passed
+- 2026-10-15T00:18:02.303Z: Phase 6 completed after scoped Flutter/Laravel verification; hardware camera/device checks remain manual
+- 2026-10-15T00:18:03.103Z: Started Phase 7; no rider profit or payout data/rules were found in the existing Rider/Logistics boundary
+- 2026-10-15T00:18:04.354Z: Saved Phase 7 delivery-history extension on existing deliveries endpoint; no earnings amounts or payment logic invented
+- 2026-10-15T00:18:40.832Z: Saved history pagination and cross-rider isolation tests; active-delivery response remains compatible
+- 2026-10-15T00:18:43.295Z: rider: dart format lib/pages/delivery_history_page.dart lib/pages/delivery_dashboard_page.dart test/delivery_history_test.dart passed
+- 2026-10-15T00:18:54.624Z: rider: flutter test --no-pub test/delivery_history_test.dart passed
+- 2026-10-15T00:18:59.664Z: alona: php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Feature/Logistics/RiderDeliveryCompletionTest.php passed
+- 2026-10-15T00:21:51.264Z: History widget and 11 Laravel delivery/history tests passed; Phase 7 remains BLOCKED only for unspecified earnings
+- 2026-10-15T00:21:51.991Z: Started Phase 8; notifications will use existing unread conversations and active tasks, without claiming device push delivery
+- 2026-10-15T00:21:58.240Z: Saved Phase 8 client tools; no new backend routes/tables; existing membership and recipient eligibility tightened
+- 2026-10-15T00:22:54.950Z: Saved chat, pending-account contact, unread updates and session-expiry regression tests
+- 2026-10-15T00:22:58.071Z: rider: dart format lib/pages/rider_portal_page.dart lib/services/rider_portal_api.dart lib/services/rider_session_guard.dart lib/pages/login_page.dart lib/pages/pickup_dashboard_page.dart lib/pages/delivery_dashboard_page.dart test/rider_portal_test.dart passed
+- 2026-10-15T00:23:11.153Z: rider: flutter test --no-pub test/rider_portal_test.dart test/widget_test.dart passed
+- 2026-10-15T00:25:12.538Z: alona: php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Feature/Logistics/ConversationMessagingTest.php tests/Feature/PartnerOnboardingTest.php passed
+- 2026-10-15T00:25:20.536Z: rider: flutter analyze --no-pub --no-fatal-infos lib/pages/rider_portal_page.dart lib/services/rider_portal_api.dart lib/services/rider_session_guard.dart test/rider_portal_test.dart passed
+- 2026-10-15T00:29:10.952Z: Phase 8 completed: 5 Flutter checks and 21 isolated Laravel messaging/onboarding tests passed
+- 2026-10-15T00:29:11.774Z: Started Phase 9 risk checkpoint before changing proof persistence; prior source backed up and no database records modified
+- 2026-10-15T00:30:47.998Z: Saved complete Phase 9 sources; private proof persistence now locked and rolls back uploaded files on record failure; old source backups verified
+- 2026-10-15T00:30:50.876Z: rider: dart format lib/pages/proof_capture_page.dart lib/pages/login_page.dart lib/pages/rider_portal_page.dart lib/services/rider_session_guard.dart test/api_errors_test.dart passed
+- 2026-10-15T00:31:08.802Z: rider: flutter test --no-pub test/api_errors_test.dart test/rider_portal_test.dart test/delivery_workflow_test.dart passed
+- 2026-10-15T00:31:13.686Z: alona: php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Feature/Logistics/RiderDeliveryCompletionTest.php tests/Feature/Logistics/ConversationMessagingTest.php passed
+- 2026-10-15T00:33:53.539Z: rider: dart fix --apply --code=curly_braces_in_flow_control_structures passed
+- 2026-10-15T00:34:03.420Z: rider: flutter analyze --no-pub passed
+- 2026-10-15T00:36:23.098Z: Phase 9 completed: 10 focused Flutter tests and 19 Laravel tests passed; full Flutter static analysis has no issues
+- 2026-10-15T00:36:23.773Z: Started Phase 10; review identified repeated nested iOS permission keys and an existing registration field not being persisted
+- 2026-10-15T00:37:51.803Z: Saved final review corrections: root-only iOS permission keys, existing optional sex-field persistence, and verified previous-bundle recovery without touching source/Git/database
+- 2026-10-15T00:37:57.345Z: rider: node --test scripts/integration_checkpoint.test.cjs passed
+- 2026-10-15T00:37:59.869Z: rider: dart format lib/pages/registration_page.dart passed
+- 2026-10-15T00:38:32.726Z: rider: flutter test --no-pub passed
+- 2026-10-15T00:41:31.429Z: alona: php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Feature/Logistics tests/Unit/Logistics tests/Feature/PartnerOnboardingTest.php tests/Feature/PhilippineAddressTest.php tests/Feature/DeliveryCoverageTest.php passed
+- 2026-10-15T00:41:38.817Z: rider: flutter analyze --no-pub failed/unknown
+- 2026-10-15T00:43:42.644Z: rider: node --test scripts/integration_checkpoint.test.cjs passed
+- 2026-10-15T00:43:50.299Z: rider: dart fix --apply --code=use_null_aware_elements passed
+- 2026-10-15T00:43:58.002Z: rider: flutter analyze --no-pub passed
+- 2026-10-15T00:44:10.758Z: rider: flutter test --no-pub test/registration_api_test.dart test/widget_test.dart passed
+- 2026-10-15T00:45:57.670Z: rider: flutter build web --no-pub --dart-define=API_BASE_URL=https://alona.example/api passed
+- 2026-10-15T00:47:33.995Z: Release JavaScript web build passed; final review found canonical registration casing was not matched by case-sensitive rider login lookups
+- 2026-10-15T00:48:06.200Z: alona: php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Feature/Logistics tests/Unit/Logistics tests/Feature/PartnerOnboardingTest.php tests/Feature/PhilippineAddressTest.php tests/Feature/DeliveryCoverageTest.php passed
+- 2026-10-15T00:50:05.634Z: Saved final verified handoff: Phases 4-6/8-9 complete; history complete with earnings blocked; Phase 10 automated checks pass and manual verification explicitly pending
+- 2026-10-15T00:52:27.491Z: Saved concise current architecture/deployment notes and complete integration endpoint list; final review adds a safe HTTP 413 upload-limit message
+- 2026-10-15T00:52:30.699Z: rider: dart format lib/services/api_error.dart passed
+- 2026-10-15T00:52:46.514Z: rider: flutter test --no-pub test/api_errors_test.dart passed
+- 2026-10-15T00:52:56.797Z: rider: flutter analyze --no-pub passed
+- 2026-10-15T00:56:41.581Z: rider: flutter build web --no-pub --dart-define=API_BASE_URL=https://alona.example/api passed
+- 2026-10-15T00:59:11.032Z: Final current-source web build passed; source/Git/checkpoint verification follows. Phase 7 earnings BLOCKED and Phase 10 manual verification remain explicit.
+- 2026-10-15T01:42:28.430Z: Token-saving checkpoint: retained prior successful test evidence, refreshed both Git repositories, marked manual Phase 10 checks PENDING and Phase 7 profit BLOCKED; no commits or source edits
+- 2026-10-15T09:25:09.412Z: Resumed targeted final review after successful checkpoint verification
+- 2026-10-15T09:33:37.879Z: Completed scoped code/secrets/commit-boundary review and financial evidence inspection; before documentation batch
+- 2026-10-15T09:34:05.731Z: Completed final scoped review and financial inspection; saved commit boundaries, manual acceptance plan and affected project memory
+- 2026-10-15T09:39:08.369Z: Approved seller-funded earnings rules received; begin proposal-only Phase 7 analysis
+- 2026-10-15T09:41:36.053Z: Phase 7 investigation complete; before proposal/memory documentation batch
+- 2026-10-15T09:44:32.377Z: Phase 7 seller-funded earnings proposal completed and verified; implementation approval gate remains closed
+- 2026-10-15T09:51:22.540Z: User approved Phase 7 with package-level billing; start required pre-migration shipment identity audit
+- 2026-10-15T09:52:36.365Z: Pre-migration audit confirms missing reliable seller shipment identifier; documentation-only proposal batch begins
+- 2026-10-15T09:55:36.093Z: Completed required shipment identity audit and express review; missing identifier proposal checkpoint saved at user approval gate
+- 2026-10-15T09:58:35.684Z: Shipment design explicitly approved; Phase 7 implementation begins
+- 2026-10-15T10:00:37.185Z: Phase 7 schema/service batch written; no application database commands executed
+- 2026-10-15T10:03:39.762Z: Phase 7 checkout/workflow batch saved before finance API changes; no production database operations
+- 2026-10-15T10:04:03.466Z: Phase 7 API batch checkpoint before tests
+- 2026-10-15T10:05:55.144Z: Saved focused finance tests before first isolated PHPUnit run
+- 2026-10-15T10:07:07.636Z: alona: php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Feature/Logistics/SellerShipmentFinanceTest.php failed/unknown
+- 2026-10-15T10:07:46.853Z: Before focused fix batch after first test run; no production data touched
+- 2026-10-15T10:11:29.355Z: Phase 7 focused fixes and fresh-read concurrency safeguards saved before rerun
+- 2026-10-15T10:11:35.373Z: alona: php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Feature/Logistics/SellerShipmentFinanceTest.php failed/unknown
+- 2026-10-15T10:12:16.262Z: Before second focused test correction/coverage batch
+- 2026-10-15T10:12:22.711Z: Before second focused test correction/coverage batch
+- 2026-10-15T10:12:28.107Z: alona: php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Feature/Logistics/SellerShipmentFinanceTest.php failed/unknown
+- 2026-10-15T10:13:26.504Z: Before final finance review/test refinement batch
+- 2026-10-15T10:13:33.855Z: Before final finance review/test refinement batch
+- 2026-10-15T10:13:39.346Z: alona: php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Feature/Logistics/SellerShipmentFinanceTest.php passed
+- 2026-10-15T10:14:12.305Z: alona: php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Feature/Logistics failed/unknown
+- 2026-10-15T10:14:50.185Z: alona: php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Feature/Logistics passed
+- 2026-10-15T10:16:07.817Z: Before final policy-alignment fix and focused verification
+- 2026-10-15T10:16:14.897Z: Before final policy-alignment fix and focused verification
+- 2026-10-15T10:16:20.342Z: alona: php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Feature/Logistics/SellerShipmentFinanceTest.php passed
+- 2026-10-15T10:17:29.478Z: Final finance suite passed; checkpoint before architecture/documentation batch
+- 2026-10-15T10:19:47.787Z: alona: php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Feature/Logistics passed
+- 2026-10-15T10:22:06.584Z: Phase 7 backend implementation completed, final automated checks passed and both project memories updated; crash-safe handoff saved

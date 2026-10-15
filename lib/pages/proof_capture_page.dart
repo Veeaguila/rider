@@ -1,20 +1,24 @@
-import "dart:io";
+import "dart:typed_data";
+
 import "package:flutter/material.dart";
 import "package:image_picker/image_picker.dart";
 import "package:http/http.dart" as http;
-import "dart:convert";
+
+import "../services/api_error.dart";
 import "../services/api_config.dart";
 import "../services/rider_session.dart";
 import "../services/rider_session_guard.dart";
 
 class ProofCapturePage extends StatefulWidget {
   final RiderSession? session;
+  final Future<XFile?> Function()? capturePhoto;
   final int parcelId;
   final String deliveryAddress;
 
   const ProofCapturePage({
     super.key,
     this.session,
+    this.capturePhoto,
     required this.parcelId,
     required this.deliveryAddress,
   });
@@ -23,11 +27,13 @@ class ProofCapturePage extends StatefulWidget {
   State<ProofCapturePage> createState() => _ProofCapturePageState();
 }
 
-class _ProofCapturePageState extends State<ProofCapturePage> with RiderSessionGuard<ProofCapturePage> {
+class _ProofCapturePageState extends State<ProofCapturePage>
+    with RiderSessionGuard<ProofCapturePage> {
   @override
   late final riderSession = widget.session ?? RiderSession();
   final ImagePicker _imagePicker = ImagePicker();
-  File? _capturedImage;
+  XFile? _capturedImage;
+  Uint8List? _capturedBytes;
   String _proofType = "PHOTO";
   final TextEditingController _notesController = TextEditingController();
   bool _isUploading = false;
@@ -40,57 +46,96 @@ class _ProofCapturePageState extends State<ProofCapturePage> with RiderSessionGu
 
   Future<void> _capturePhoto() async {
     try {
-      final XFile? photo = await _imagePicker.pickImage(
-        source: ImageSource.camera,
-        maxWidth: 1200,
-        maxHeight: 1200,
-        imageQuality: 85,
-      );
+      await readyToken();
+      final XFile? photo = widget.capturePhoto != null
+          ? await widget.capturePhoto!()
+          : await _imagePicker.pickImage(
+              source: ImageSource.camera,
+              maxWidth: 1200,
+              maxHeight: 1200,
+              imageQuality: 85,
+            );
       if (photo != null) {
+        final bytes = await photo.readAsBytes();
+        if (bytes.length > 20 * 1024 * 1024) {
+          throw const SessionFailure("Proof must be at most 20 MB.");
+        }
+        if (!mounted) return;
         setState(() {
-          _capturedImage = File(photo.path);
+          _capturedImage = photo;
+          _capturedBytes = bytes;
           _proofType = "PHOTO";
         });
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error: $e")));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e is SessionFailure ? e.message : "Could not capture a photo. Check camera permission and retry.",
+          ),
+        ),
+      );
     }
   }
 
   Future<void> _uploadProof() async {
-    if (_capturedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Please capture a photo")));
+    if (_isUploading) return;
+    if (_capturedImage == null || _capturedBytes == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please capture a photo')));
       return;
     }
-
+    if (_capturedBytes!.length > 20 * 1024 * 1024 ||
+        _notesController.text.length > 500) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Proof must be at most 20 MB and notes at most 500 characters.',
+          ),
+        ),
+      );
+      return;
+    }
     setState(() => _isUploading = true);
     try {
       final token = await readyToken();
-
-      final uri = Uri.parse("$deliveriesUrl/${widget.parcelId}/upload-proof");
-      final request = http.MultipartRequest("POST", uri)
-        ..headers["Authorization"] = "Bearer $token"
-        ..headers["Accept"] = "application/json"
-        ..fields["type"] = _proofType
-        ..fields["notes"] = _notesController.text
-        ..files.add(await http.MultipartFile.fromPath("file", _capturedImage!.path));
-
-      final streamedResponse = await request.send();
-      final response = await http.Response.fromStream(streamedResponse);
-
+      final request =
+          http.MultipartRequest(
+              'POST',
+              Uri.parse('$deliveriesUrl/${widget.parcelId}/upload-proof'),
+            )
+            ..headers['Authorization'] = 'Bearer $token'
+            ..headers['Accept'] = 'application/json'
+            ..fields['type'] = _proofType
+            ..fields['notes'] = _notesController.text
+            ..files.add(
+              http.MultipartFile.fromBytes(
+                'file',
+                _capturedBytes!,
+                filename: _capturedImage!.name,
+              ),
+            );
+      final response = await riderSession.sendMultipart(request);
       await checkAuthorization(response.statusCode);
-      if (!mounted) return;
-
-      if (response.statusCode == 201) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Proof uploaded!")));
-        Navigator.of(context).pop(true);
-      } else {
-        throw Exception(jsonDecode(response.body)["message"] ?? "Upload failed");
+      if (response.statusCode != 201) {
+        throw SessionFailure(apiErrorMessage(response));
       }
-    } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e is SessionFailure ? e.message : "Proof upload failed. Please retry.")));
+      ScaffoldMessenger.of(context)
+          .showSnackBar(const SnackBar(content: Text('Proof uploaded!')));
+      Navigator.of(context).pop(true);
+    } catch (failure) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              failure is SessionFailure ? failure.message : 'Proof upload could not be confirmed. Refresh before retrying.',
+            ),
+          ),
+        );
+      }
     } finally {
       if (mounted) setState(() => _isUploading = false);
     }
@@ -115,45 +160,71 @@ class _ProofCapturePageState extends State<ProofCapturePage> with RiderSessionGu
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text("Delivery Address", style: TextStyle(fontWeight: FontWeight.bold)),
+                      const Text(
+                        "Delivery Address",
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
                       const SizedBox(height: 8),
-                      Text(widget.deliveryAddress, style: const TextStyle(color: Colors.grey)),
+                      Text(
+                        widget.deliveryAddress,
+                        style: const TextStyle(color: Colors.grey),
+                      ),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-              const Text("Proof Type", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
-              Row(
-                children: [
-                  Expanded(
-                    child: RadioListTile<String>(
-                      title: const Text("Photo"),
-                      value: "PHOTO",
-                      groupValue: _proofType,
-                      onChanged: (value) => setState(() => _proofType = value!),
+              const Text(
+                "Proof Type",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+              RadioGroup<String>(
+                groupValue: _proofType,
+                onChanged: (value) {
+                  if (value != null) setState(() => _proofType = value);
+                },
+                child: Row(
+                  children: const [
+                    Expanded(
+                      child: RadioListTile<String>(
+                        title: Text('Photo'),
+                        value: 'PHOTO',
+                      ),
                     ),
-                  ),
-                  Expanded(
-                    child: RadioListTile<String>(
-                      title: const Text("Signature"),
-                      value: "SIGNATURE",
-                      groupValue: _proofType,
-                      onChanged: (value) => setState(() => _proofType = value!),
+                    Expanded(
+                      child: RadioListTile<String>(
+                        title: Text('Signature'),
+                        value: 'SIGNATURE',
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
               const SizedBox(height: 20),
-              const Text("Proof Image", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+              const Text(
+                "Proof Image",
+                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              ),
               const SizedBox(height: 12),
               _capturedImage != null
-                  ? Image.file(_capturedImage!, height: 300, width: double.infinity, fit: BoxFit.cover)
+                  ? Image.memory(
+                      _capturedBytes!,
+                      height: 300,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    )
                   : Container(
                       height: 200,
                       width: double.infinity,
-                      decoration: BoxDecoration(border: Border.all(color: Colors.grey)),
-                      child: const Center(child: Text("No image captured", style: TextStyle(color: Colors.grey))),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey),
+                      ),
+                      child: const Center(
+                        child: Text(
+                          "No image captured",
+                          style: TextStyle(color: Colors.grey),
+                        ),
+                      ),
                     ),
               const SizedBox(height: 12),
               SizedBox(
@@ -169,14 +240,20 @@ class _ProofCapturePageState extends State<ProofCapturePage> with RiderSessionGu
                 ),
               ),
               const SizedBox(height: 20),
-              const Text("Notes", style: TextStyle(fontWeight: FontWeight.bold)),
+              const Text(
+                "Notes",
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 12),
               TextField(
                 controller: _notesController,
                 maxLines: 3,
+                maxLength: 500,
                 decoration: InputDecoration(
                   hintText: "Add notes about delivery...",
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
                 ),
               ),
               const SizedBox(height: 24),
@@ -184,8 +261,15 @@ class _ProofCapturePageState extends State<ProofCapturePage> with RiderSessionGu
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _isUploading ? null : _uploadProof,
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.green, padding: const EdgeInsets.symmetric(vertical: 14)),
-                  child: _isUploading ? const CircularProgressIndicator(valueColor: AlwaysStoppedAnimation(Colors.white)) : const Text("Upload Proof"),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.green,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: _isUploading
+                      ? const CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation(Colors.white),
+                        )
+                      : const Text("Upload Proof"),
                 ),
               ),
               const SizedBox(height: 12),

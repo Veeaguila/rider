@@ -23,6 +23,79 @@ class RiderSession {
     this.timeout = const Duration(seconds: 15),
   }) : tokens = tokens ?? TokenStore();
 
+  Future<http.Response> send(
+    String method,
+    Uri uri, {
+    Map<String, String>? headers,
+    Object? body,
+  }) async {
+    final base = Uri.parse(apiBaseUrl);
+    if (uri.scheme != base.scheme ||
+        uri.host != base.host ||
+        uri.port != base.port ||
+        uri.userInfo.isNotEmpty ||
+        !uri.path.startsWith('${base.path}/')) {
+      throw const SessionFailure(
+        'The request URL is not part of the configured ALONA API.',
+      );
+    }
+    final transport = client ?? http.Client();
+    try {
+      final request = http.Request(method, uri)..headers.addAll(headers ?? {});
+      request.headers['Accept'] = 'application/json';
+      if (body is String) {
+        request.body = body;
+      } else if (body is Map<String, String>) {
+        request.bodyFields = body;
+      }
+      final result = await transport.send(request).timeout(timeout);
+      return await http.Response.fromStream(result).timeout(timeout);
+    } catch (_) {
+      throw const SessionFailure(
+        'The request could not be confirmed. Check your connection and refresh before retrying.',
+      );
+    } finally {
+      if (client == null) transport.close();
+    }
+  }
+
+  Future<http.Response> get(Uri uri, {Map<String, String>? headers}) =>
+      send('GET', uri, headers: headers);
+  Future<http.Response> post(
+    Uri uri, {
+    Map<String, String>? headers,
+    Object? body,
+  }) => send('POST', uri, headers: headers, body: body);
+  Future<http.Response> patch(
+    Uri uri, {
+    Map<String, String>? headers,
+    Object? body,
+  }) => send('PATCH', uri, headers: headers, body: body);
+
+  Future<http.Response> sendMultipart(http.MultipartRequest request) async {
+    final base = Uri.parse(apiBaseUrl), uri = request.url;
+    if (uri.scheme != base.scheme ||
+        uri.host != base.host ||
+        uri.port != base.port ||
+        uri.userInfo.isNotEmpty ||
+        !uri.path.startsWith('${base.path}/')) {
+      throw const SessionFailure(
+        'The upload URL is not part of the configured ALONA API.',
+      );
+    }
+    final transport = client ?? http.Client();
+    try {
+      final response = await transport.send(request).timeout(timeout);
+      return await http.Response.fromStream(response).timeout(timeout);
+    } catch (_) {
+      throw const SessionFailure(
+        'The upload could not be confirmed. Refresh the delivery before retrying.',
+      );
+    } finally {
+      if (client == null) transport.close();
+    }
+  }
+
   Future<String> requireReadyToken() async {
     final token = await tokens.read();
     if (token == null || token.isEmpty) {

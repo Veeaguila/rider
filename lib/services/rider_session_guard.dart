@@ -16,14 +16,19 @@ mixin RiderSessionGuard<T extends StatefulWidget> on State<T> {
     }
   }
 
-  Future<String> readyToken() async {
+  Future<String> readyToken() => sessionAction(riderSession.requireReadyToken);
+
+  Future<R> sessionAction<R>(Future<R> Function() action) async {
     try {
-      return await riderSession.requireReadyToken();
+      return await action();
     } on SessionFailure catch (failure) {
       if (failure.accessDenied && mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(
-            builder: (_) => LoginPage(initialMessage: failure.message),
+            builder: (_) => LoginPage(
+              initialMessage: failure.message,
+              session: riderSession,
+            ),
           ),
           (route) => false,
         );

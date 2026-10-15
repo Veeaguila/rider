@@ -1,7 +1,9 @@
- import 'dart:convert';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+
+import '../services/api_error.dart';
+
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/api_config.dart';
@@ -10,7 +12,9 @@ import '../services/rider_session.dart';
 import '../services/rider_session_guard.dart';
 import '../widgets/failure_reason_dialog.dart';
 import 'login_page.dart';
+import 'rider_portal_page.dart';
 import 'proof_capture_page.dart';
+import 'delivery_history_page.dart';
 
 class DeliveryDashboardPage extends StatefulWidget {
   final RiderSession? session;
@@ -59,7 +63,7 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
     });
     try {
       final token = await readyToken();
-      final response = await http.get(
+      final response = await riderSession.get(
         Uri.parse(deliveriesUrl),
         headers: {
           'Accept': 'application/json',
@@ -67,7 +71,9 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
         },
       );
       await checkAuthorization(response.statusCode);
-      if (response.statusCode != 200) throw Exception(response.body);
+      if (response.statusCode != 200) {
+        throw SessionFailure(apiErrorMessage(response));
+      }
       if (!mounted) return;
       setState(() {
         deliveries = List<Map<String, dynamic>>.from(
@@ -79,7 +85,7 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
       if (!mounted) return;
       setState(() {
         loading = false;
-        error = exception.toString().replaceFirst('Exception: ', '');
+        error = exception is SessionFailure ? exception.message : 'Could not confirm this delivery request. Refresh before retrying.';
       });
     }
   }
@@ -96,18 +102,25 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
       );
     } catch (failure) {
       if (!mounted) return;
-      setState(() => error = failure is SessionFailure ? failure.message
-          : 'Could not clear your session. Please retry logout.');
+      setState(
+        () => error = failure is SessionFailure
+            ? failure.message
+            : 'Could not clear your session. Please retry logout.',
+      );
     } finally {
       if (mounted) setState(() => loggingOut = false);
     }
   }
+
   String address(Map<String, dynamic> delivery) => deliveryAddress(delivery);
 
   Future<void> openMaps(Map<String, dynamic> delivery) async {
     final location = address(delivery);
     if (location.isEmpty) {
-      setState(() => error = 'The delivery address is unavailable. Contact the sorting center.');
+      setState(
+        () => error =
+            'The delivery address is unavailable. Contact the sorting center.',
+      );
       return;
     }
     final uri = Uri.https('maps.google.com', '/', {'q': location});
@@ -118,11 +131,18 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
   }
 
   Future<void> markDelivered(Map<String, dynamic> delivery) async {
+    if (delivery['has_delivery_proof'] != true) {
+      setState(
+        () => error =
+            'Upload delivery proof before marking this parcel as delivered.',
+      );
+      return;
+    }
     await updateDelivery(delivery, 'deliver');
   }
 
   Future<void> startDelivery(Map<String, dynamic> delivery) async {
-    if (loggingOut) return;
+    if (loggingOut || actionParcelId != null) return;
     setState(() {
       actionParcelId = delivery['id'] as int;
       error = null;
@@ -130,7 +150,7 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
     });
     try {
       final token = await readyToken();
-      final response = await http.post(
+      final response = await riderSession.post(
         Uri.parse('$deliveriesUrl/${delivery['id']}/start'),
         headers: {
           'Accept': 'application/json',
@@ -138,6 +158,9 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
         },
       );
       await checkAuthorization(response.statusCode);
+      if (response.statusCode != 200) {
+        throw SessionFailure(apiErrorMessage(response));
+      }
       final payload = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200) {
         throw Exception(
@@ -154,7 +177,7 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
       if (!mounted) return;
       setState(() {
         actionParcelId = null;
-        error = exception.toString().replaceFirst('Exception: ', '');
+        error = exception is SessionFailure ? exception.message : 'Could not confirm this delivery request. Refresh before retrying.';
       });
     }
   }
@@ -172,7 +195,7 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
     String action, {
     Map<String, String>? body,
   }) async {
-    if (loggingOut) return;
+    if (loggingOut || actionParcelId != null) return;
     setState(() {
       actionParcelId = delivery['id'] as int;
       error = null;
@@ -180,7 +203,7 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
     });
     try {
       final token = await readyToken();
-      final response = await http.post(
+      final response = await riderSession.post(
         Uri.parse('$deliveriesUrl/${delivery['id']}/$action'),
         headers: {
           'Accept': 'application/json',
@@ -190,6 +213,9 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
         body: body != null ? jsonEncode(body) : null,
       );
       await checkAuthorization(response.statusCode);
+      if (response.statusCode != 200) {
+        throw SessionFailure(apiErrorMessage(response));
+      }
       final payload = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode != 200) {
         throw Exception(
@@ -212,7 +238,7 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
       if (!mounted) return;
       setState(() {
         actionParcelId = null;
-        error = exception.toString().replaceFirst('Exception: ', '');
+        error = exception is SessionFailure ? exception.message : 'Could not confirm this delivery request. Refresh before retrying.';
       });
       Future.delayed(const Duration(seconds: 3), () {
         if (mounted && error != null) {
@@ -317,7 +343,7 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: actionParcelId == delivery['id']
+                onPressed: actionParcelId != null
                     ? null
                     : () => startDelivery(delivery),
                 icon: const Icon(Icons.play_arrow),
@@ -338,7 +364,9 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
                         deliveryAddress: address(delivery),
                       ),
                     ),
-                  ).then((_) { if (mounted) refresh(); });
+                  ).then((_) {
+                    if (mounted) refresh();
+                  });
                 },
                 icon: const Icon(Icons.camera_alt_outlined),
                 label: const Text('Capture Proof'),
@@ -352,7 +380,9 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
               children: [
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: actionParcelId == delivery['id']
+                    onPressed:
+                        actionParcelId != null ||
+                            delivery['has_delivery_proof'] != true
                         ? null
                         : () => markDelivered(delivery),
                     icon: const Icon(Icons.check_circle_outline),
@@ -365,7 +395,7 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
                 const SizedBox(width: 10),
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: actionParcelId == delivery['id']
+                    onPressed: actionParcelId != null
                         ? null
                         : () => markFailed(delivery),
                     icon: const Icon(Icons.report_problem_outlined),
@@ -396,6 +426,20 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
           ],
         ),
         actions: [
+          riderTools(context, riderSession),
+          IconButton(
+            icon: const Icon(Icons.history),
+            tooltip: 'Delivery history',
+            onPressed: () =>
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => DeliveryHistoryPage(session: riderSession),
+                  ),
+                ).then((_) {
+                  if (mounted) refresh();
+                }),
+          ),
           IconButton(
             onPressed: loading ? null : refresh,
             icon: const Icon(Icons.refresh),

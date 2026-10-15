@@ -23,11 +23,14 @@ function atomicWrite(target, content, beforeReplace) {
 }
 
 function git(root) {
-  const run = args => execFileSync('git', ['-C', root, ...args], {encoding:'utf8', stdio:['ignore','pipe','pipe']}).trim();
+  const run = args => execFileSync('git', ['-c', 'safe.directory='+root, '-C', root, ...args], {encoding:'utf8', stdio:['ignore','pipe','pipe']}).trim();
   try {
     return {tracked:true, branch:run(['branch','--show-current']) || '(detached HEAD)',
-      head:run(['rev-parse','--short','HEAD']), status:run(['status','--short']) || '(clean)'};
-  } catch (_) { return {tracked:false, branch:'N/A', head:'N/A', status:'Not a Git repository; source changes exist only on disk.'}; }
+      head:(()=>{try{return run(['rev-parse','--short','HEAD']);}catch(_){return '(no commits)';}})(), status:run(['status','--short']) || '(clean)'};
+  } catch (_) {
+    if(fs.existsSync(path.join(root,'.git')))throw Error('Git metadata is unavailable for '+root+'; stop cross-project changes and inspect access.');
+    return {tracked:false, branch:'N/A', head:'N/A', status:'Not a Git repository; source changes exist only on disk.'};
+  }
 }
 
 function fingerprint(files, root) {
@@ -64,8 +67,8 @@ function save(update) {
   docs['PROGRESS.md'] = `# Integration progress\n\nCheckpoint: ${id}\n\nALONA is the single backend and database. Phase definitions below supersede the earlier six-phase outline.\n\n| Phase | Scope | Status |\n|---|---|---|\n` +
     state.phases.map(p=>`| ${p.number} | ${p.name} | ${p.status} |`).join('\n') +
     `\n\nCompleted\n\n${bullet(state.completed)}\n\nRemaining\n\n${bullet(state.remaining)}\n\nEvidence and limitations: see CHECKPOINT.md and existing ../CURRENT_STATE.md.\n`;
-  docs['CHECKPOINT.md'] = `# Integration checkpoint\n\nCheckpoint: ${id}\nSaved synchronously; timestamps are UTC.\n\nCURRENT PHASE: ${state.phase}\nCURRENT TASK: ${state.task}\nLAST COMPLETED TASK: ${state.lastCompleted}\nLAST VERIFIED TEST: ${state.lastVerified}\n\nCOMPLETED TASKS:\n\n${bullet(state.completed)}\n\nREMAINING TASKS:\n\n${bullet(state.remaining)}\n\nMODIFIED FLUTTER FILES:\n\n${bullet(state.flutterFiles)}\n\nMODIFIED LARAVEL FILES:\n\n${bullet(state.laravelFiles)}\n\nRELEVANT API ENDPOINTS:\n\n${bullet(state.endpoints)}\n\nTEST RESULTS:\n\n${bullet(state.tests)}\n\nUNCOMMITTED CHANGES:\n\n${repository('ALONA',state.repositories.alona)}\n${repository('Rider',state.repositories.rider)}\nNo automatic commit or push. ALONA tracked status above includes all existing changes; ownership must be checked before committing. Rider has no Git recovery history.\n\nKNOWN ISSUES:\n\n${bullet(state.issues)}\n\nINTERRUPTED OR RUNNING OPERATIONS:\n\n${bullet(state.operations)}\n\nNEXT ACTION: ${state.next}\n\nRECOVERY NOTES:\n\nVerify source hashes with --verify and inspect changed files before continuing. A running operation has UNKNOWN results until its confirmed outcome is saved. Preserve .previous files and orphan .tmp-* files until their content is checked. CHECKPOINT.md is written last as the completed bundle marker; mismatched IDs mean an interrupted bundle. State JSON is a recovery aid, not proof of a successful command. Never reset/clean uncommitted files or repeat migrations automatically.\n`;
-  docs['RESUME.md'] = `# Resume ALONA / Rider integration\n\nProjects: Rider \`${RIDER}\`; ALONA \`${ALONA}\`.\nCurrent phase: ${state.phase}. Objective: shared ALONA API integration with safe disk checkpoints.\nLast successful checkpoint: ${id}.\n\n## NEXT CODEX SESSION\n\n1. Verify both directories; read applicable AGENTS.md, this file, CHECKPOINT.md, PROGRESS.md, then existing project memory.\n2. Check Git branch/status in both projects. Rider is currently not Git-tracked; compare recorded file hashes instead.\n3. Run \`node scripts/integration_checkpoint.cjs --verify\` from Rider. Inspect only changed/incomplete files; trust verified source over notes.\n4. Treat commands listed as running/interrupted as UNKNOWN. Rerun only affected focused checks; never repeat migrations or destructive actions automatically.\n5. Next exact task: ${state.next}\n6. Save a checkpoint before each phase, meaningful edit batch, risky edit, long test/build, and after each phase. Use --update with a JSON update file; complete content is flushed to a same-directory temporary file, atomically replaced and verified. Do not edit checkpoint documents manually.\n\nDependencies: existing ALONA Sanctum, partner registration/address/coverage contracts, Rider approval and parcel authorization. No extra backend/database.\nRelevant files: use the scoped lists in CHECKPOINT.md and ../ARCHITECTURE.md.\nVerification commands: \`node --test scripts/integration_checkpoint.test.cjs\`; \`flutter test --no-pub <affected-tests>\`; \`flutter analyze --no-pub --no-fatal-infos <affected-files>\`; ALONA \`php vendor/phpunit/phpunit/phpunit --do-not-cache-result <affected-tests>\` with DB_CONNECTION=sqlite, DB_DATABASE=:memory:, DB_URL empty. Never test against development/production records.\n\nBlockers / decisions:\n\n${bullet(state.issues)}\n\nAuthorization: continue Phases 4-10 where safe per the latest user request. Phase 3 is completed; do not reimplement it. Commits require explicit permission. No permission to invent rider earnings or payout rules.\nLimitations: no automatic Codex launch after reboot, unsaved edit/process recovery, protection against disk corruption/deletion, or off-device backup. Existing valid files are preserved if atomic replacement fails.\n`;
+  docs['CHECKPOINT.md'] = `# Integration checkpoint\n\nCheckpoint: ${id}\nSaved synchronously; timestamps are UTC.\n\nCURRENT PHASE: ${state.phase}\nCURRENT TASK: ${state.task}\nLAST COMPLETED TASK: ${state.lastCompleted}\nLAST VERIFIED TEST: ${state.lastVerified}\n\nCOMPLETED TASKS:\n\n${bullet(state.completed)}\n\nREMAINING TASKS:\n\n${bullet(state.remaining)}\n\nMODIFIED FLUTTER FILES:\n\n${bullet(state.flutterFiles)}\n\nMODIFIED LARAVEL FILES:\n\n${bullet(state.laravelFiles)}\n\nRELEVANT API ENDPOINTS:\n\n${bullet(state.endpoints)}\n\nTEST RESULTS:\n\n${bullet(state.tests)}\n\nUNCOMMITTED CHANGES:\n\n${repository('ALONA',state.repositories.alona)}\n${repository('Rider',state.repositories.rider)}\nNo automatic commit or push. ALONA tracked status above includes all existing changes; ownership must be checked before committing. ${state.repositories.rider.tracked ? "Rider changes are tracked by Git; HEAD and working-tree status above distinguish committed/local work." : "Rider has no Git recovery history."}\n\nKNOWN ISSUES:\n\n${bullet(state.issues)}\n\nINTERRUPTED OR RUNNING OPERATIONS:\n\n${bullet(state.operations)}\n\nNEXT ACTION: ${state.next}\n\nRECOVERY NOTES:\n\nVerify source hashes with --verify and inspect changed files before continuing. A running operation has UNKNOWN results until its confirmed outcome is saved. Preserve .previous files and orphan .tmp-* files until their content is checked. CHECKPOINT.md is written last as the completed bundle marker; mismatched IDs mean an interrupted bundle. State JSON is a recovery aid, not proof of a successful command. Never reset/clean uncommitted files or repeat migrations automatically.\n`;
+  docs['RESUME.md'] = `# Resume ALONA / Rider integration\n\nProjects: Rider \`${RIDER}\`; ALONA \`${ALONA}\`.\nCurrent phase: ${state.phase}. Objective: shared ALONA API integration with safe disk checkpoints.\nLast successful checkpoint: ${id}.\n\n## NEXT CODEX SESSION\n\n1. Verify both directories; read applicable AGENTS.md, this file, CHECKPOINT.md, PROGRESS.md, then existing project memory.\n2. Check Git branch/status in both projects. ${state.repositories.rider.tracked ? "Rider is Git-tracked; preserve existing commits and local changes." : "Rider is not Git-tracked; compare recorded file hashes instead."}\n3. Run \`node scripts/integration_checkpoint.cjs --verify\` from Rider. Inspect only changed/incomplete files; trust verified source over notes.\n4. Treat commands listed as running/interrupted as UNKNOWN. Rerun only affected focused checks; never repeat migrations or destructive actions automatically.\n5. Next exact task: ${state.next}\n6. Save a checkpoint before each phase, meaningful edit batch, risky edit, long test/build, and after each phase. Use --update with a JSON update file; complete content is flushed to a same-directory temporary file, atomically replaced and verified. Use --run for test/build commands; running and confirmed outcomes are saved automatically. If bundle IDs disagree, use --recover to verify and restore the complete previous bundle while archiving interrupted notes. Inspect RECOVERY_NOTES.md and changed source before continuing. Do not edit checkpoint documents manually.\n\nDependencies: existing ALONA Sanctum, partner registration/address/coverage contracts, Rider approval and parcel authorization. No extra backend/database.\nRelevant files: use the scoped lists in CHECKPOINT.md and ../ARCHITECTURE.md.\nVerification commands: \`node --test scripts/integration_checkpoint.test.cjs\`; \`flutter test --no-pub <affected-tests>\`; \`flutter analyze --no-pub --no-fatal-infos <affected-files>\`; ALONA \`php vendor/phpunit/phpunit/phpunit --do-not-cache-result <affected-tests>\` with DB_CONNECTION=sqlite, DB_DATABASE=:memory:, DB_URL empty. Use the --run alona wrapper for PHPUnit: it refuses cached application configuration and forces an in-memory database. Never clear shared config automatically or test against development/production records.\n\nBlockers / decisions:\n\n${bullet(state.issues)}\n\nAuthorization: continue Phases 4-10 where safe per the latest user request. Phase 3 is completed; do not reimplement it. Commits require explicit permission. No permission to invent rider earnings or payout rules.\nLimitations: no automatic Codex launch after reboot, unsaved edit/process recovery, protection against disk corruption/deletion, or off-device backup. Existing valid files are preserved if atomic replacement fails.\n`;
   const history = previous.history || [];
   if (update.event) history.push({id,event:update.event});
   state.history = history;
@@ -97,9 +100,14 @@ function verify() {
   console.log(changes.length ? 'Changed since checkpoint (inspect before resume):\n'+changes.join('\n') : 'Checkpoint bundle and recorded source hashes verified.');
   if(changes.length) process.exitCode=2;
 }
+function assertNoCachedConfig(root) {
+  if(fs.existsSync(path.join(root,'bootstrap/cache/config.php')))throw Error('Refusing Laravel tests with cached configuration; inspect it without clearing or changing production configuration automatically.');
+}
+
 function runCheck(project, command, args) {
   const root = project==='rider' ? RIDER : project==='alona' ? ALONA : null;
   if(!root) throw Error('Choose rider or alona');
+  if(project==='alona')assertNoCachedConfig(root);
   if(!['flutter','dart','php','node'].includes(command) || args.some(arg=>!/^[-a-zA-Z0-9_:/\\=.]+$/.test(arg))) throw Error('Unsupported check command/argument');
   if(command==='php' && !args[0]?.includes('phpunit')) throw Error('PHP wrapper supports isolated PHPUnit checks only');
   if(command==='flutter' && !['test','analyze','build'].includes(args[0])) throw Error('Flutter wrapper supports test/analyze/build only');
@@ -122,12 +130,17 @@ function runCheck(project, command, args) {
     event:label+' '+(passed?'passed':'failed/unknown')});
   process.stdout.write(output);process.exitCode=passed?0:1;
 }
-module.exports={atomicWrite,sha,parse};
+module.exports={atomicWrite,sha,parse,assertNoCachedConfig};
 if(require.main===module) {
   try {
     if(process.argv[2]==='--verify') verify();
+    else if(process.argv[2]==='--recover') {
+      const restored=require('./checkpoint_recovery.cjs').recoverBundle(path.join(RIDER,'docs/integration'),atomicWrite);
+      console.log(restored?'Recovered previous complete bundle; inspect RECOVERY_NOTES.md.':'Current bundle is coherent; nothing restored.');
+      verify();
+    }
     else if(process.argv[2]==='--update' && process.argv[3]) save(parse(fs.readFileSync(process.argv[3],'utf8')));
     else if(process.argv[2]==='--run') runCheck(process.argv[3],process.argv[4],process.argv.slice(5));
-    else throw Error('Use --update <JSON-file>, --verify, or --run rider|alona <check-command> <args>');
+    else throw Error('Use --update <JSON-file>, --verify, --recover, or --run rider|alona <check-command> <args>');
   } catch(error) { console.error(error.message);process.exitCode=1; }
 }

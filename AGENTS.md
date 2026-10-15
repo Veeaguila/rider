@@ -15,3 +15,7 @@ node scripts/integration_checkpoint.cjs --update <JSON-file>, and --run rider|al
 Treat interrupted operations as UNKNOWN. Do not redo completed Phases 1-3 or reset,
 clean, commit, push, rebase or repeat migrations automatically. Latest authorization
 permits Phases 4-10 where safe; unspecified earnings rules require clarification.
+
+If checkpoint bundle IDs disagree, use the helper --recover to verify/restore the
+previous complete documents and archive interrupted notes. Read RECOVERY_NOTES.md
+and inspect changed source before editing; recovery never resets source or Git.

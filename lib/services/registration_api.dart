@@ -20,8 +20,9 @@ class RegistrationApi {
                 ? client!.get(uri, headers: {'Accept': 'application/json'})
                 : http.get(uri, headers: {'Accept': 'application/json'}))
             .timeout(const Duration(seconds: 15));
-    if (response.statusCode != 200)
+    if (response.statusCode != 200) {
       throw const FormatException('Directory unavailable');
+    }
     final payload = jsonDecode(response.body) as Map<String, dynamic>;
     return List<Map<String, dynamic>>.from(payload['data'] as List);
   }
@@ -79,10 +80,11 @@ class RegistrationApi {
     for (final entry in documents.entries) {
       if (!motor && ['license_doc', 'or_cr_doc'].contains(entry.key)) continue;
       final file = entry.value;
-      if (file.bytes == null || file.size > 5 * 1024 * 1024)
+      if (file.bytes == null || file.size > 5 * 1024 * 1024) {
         throw const FormatException(
           'Documents must be readable and at most 5 MB.',
         );
+      }
       request.files.add(
         http.MultipartFile.fromBytes(
           entry.key,

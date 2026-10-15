@@ -1,7 +1,9 @@
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+
+import '../services/api_error.dart';
+
 import 'package:url_launcher/url_launcher.dart';
 
 import '../services/api_config.dart';
@@ -10,6 +12,7 @@ import '../services/rider_session.dart';
 import '../services/rider_session_guard.dart';
 import 'delivery_dashboard_page.dart';
 import 'login_page.dart';
+import 'rider_portal_page.dart';
 
 class PickupDashboardPage extends StatefulWidget {
   final RiderSession? session;
@@ -24,6 +27,8 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
   @override
   late final riderSession = widget.session ?? RiderSession();
   bool loggingOut = false;
+  int? actionParcelId;
+  int refreshRevision = 0;
   List<Map<String, dynamic>> available = [];
   List<Map<String, dynamic>> mine = [];
   bool loading = true;
@@ -50,6 +55,7 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
 
   Future<void> refresh() async {
     if (loggingOut) return;
+    final revision = ++refreshRevision;
     setState(() {
       loading = true;
       available = [];
@@ -62,21 +68,23 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
       };
-      final availableResponse = await http.get(
+      final availableResponse = await riderSession.get(
         Uri.parse(pickupsAvailableUrl),
         headers: headers,
       );
       await checkAuthorization(availableResponse.statusCode);
       if (availableResponse.statusCode != 200) {
-        throw Exception(availableResponse.body);
+        throw SessionFailure(apiErrorMessage(availableResponse));
       }
-      final mineResponse = await http.get(
+      final mineResponse = await riderSession.get(
         Uri.parse(pickupsMineUrl),
         headers: headers,
       );
       await checkAuthorization(mineResponse.statusCode);
-      if (mineResponse.statusCode != 200) throw Exception(mineResponse.body);
-      if (!mounted) return;
+      if (mineResponse.statusCode != 200) {
+        throw SessionFailure(apiErrorMessage(mineResponse));
+      }
+      if (!mounted || revision != refreshRevision) return;
       setState(() {
         available = List<Map<String, dynamic>>.from(
           jsonDecode(availableResponse.body)['data'] as List,
@@ -90,10 +98,11 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
       if (!mounted) return;
       setState(() {
         loading = false;
-        error = exception.toString().replaceFirst('Exception: ', '');
+        error = exception is SessionFailure
+            ? exception.message
+            : 'Could not load pickup jobs. Refresh and retry.';
       });
     }
-
   }
 
   Future<void> logout() async {
@@ -108,46 +117,66 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
       );
     } catch (failure) {
       if (!mounted) return;
-      setState(() => error = failure is SessionFailure ? failure.message
-          : 'Could not clear your session. Please retry logout.');
+      setState(
+        () => error = failure is SessionFailure
+            ? failure.message
+            : 'Could not clear your session. Please retry logout.',
+      );
     } finally {
       if (mounted) setState(() => loggingOut = false);
     }
   }
-  Future<void> accept(Map<String, dynamic> pickup) async {
-    if (loggingOut) return;
+
+  Future<void> accept(Map<String, dynamic> pickup) =>
+      pickupAction(pickup, 'accept');
+
+  Future<void> pickupAction(Map<String, dynamic> pickup, String action) async {
+    if (loggingOut || actionParcelId != null) return;
+    setState(() {
+      actionParcelId = pickup['id'] as int;
+      error = null;
+      success = null;
+    });
     try {
       final token = await readyToken();
-      final response = await http.post(
-        Uri.parse('$pickupsUrl/${pickup['id']}/accept'),
+      final response = await riderSession.post(
+        Uri.parse('$pickupsUrl/${pickup['id']}/$action'),
         headers: {
-          'Accept': 'application/json',
           'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
         },
       );
       await checkAuthorization(response.statusCode);
-      if (!mounted) return;
-      if (response.statusCode == 200) {
-        await refresh();
-        return;
+      if (response.statusCode != 200) {
+        throw SessionFailure(apiErrorMessage(response));
       }
-      final payload = jsonDecode(response.body) as Map<String, dynamic>;
-      final message =
-          payload['message']?.toString() ?? 'Could not accept this pickup.';
       await refresh();
-      if (mounted) setState(() => error = message);
-    } catch (exception) {
+      if (mounted) {
+        setState(
+          () => success = action == 'confirm'
+              ? 'Pickup confirmed successfully.'
+              : 'Pickup accepted successfully.',
+        );
+      }
+    } catch (failure) {
       if (!mounted) return;
-      final message = exception.toString().replaceFirst('Exception: ', '');
-      await refresh();
+      final message = failure is SessionFailure
+          ? failure.message
+          : 'Could not confirm this pickup action. Refresh before retrying.';
+      if (failure is! SessionFailure || !failure.accessDenied) await refresh();
       if (mounted) setState(() => error = message);
+    } finally {
+      if (mounted) setState(() => actionParcelId = null);
     }
   }
 
   Future<void> openMaps(Map<String, dynamic> pickup) async {
     final location = address(pickup);
     if (location.isEmpty) {
-      setState(() => error = 'The pickup address is unavailable. Contact the sorting center.');
+      setState(
+        () => error =
+            'The pickup address is unavailable. Contact the sorting center.',
+      );
       return;
     }
     final uri = Uri.https('maps.google.com', '/', {'q': location});
@@ -157,34 +186,8 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
     }
   }
 
-  Future<void> confirmPickup(Map<String, dynamic> pickup) async {
-    if (loggingOut) return;
-    try {
-      final token = await readyToken();
-      final response = await http.post(
-        Uri.parse('$pickupsUrl/${pickup['id']}/confirm'),
-        headers: {
-          'Accept': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
-      await checkAuthorization(response.statusCode);
-      if (!mounted) return;
-      if (response.statusCode != 200) {
-        final payload = jsonDecode(response.body) as Map<String, dynamic>;
-        throw Exception(
-          payload['message']?.toString() ?? 'Could not confirm this pickup.',
-        );
-      }
-      await refresh();
-      if (mounted) setState(() => success = 'Pickup confirmed successfully.');
-    } catch (exception) {
-      if (!mounted) return;
-      setState(
-        () => error = exception.toString().replaceFirst('Exception: ', ''),
-      );
-    }
-  }
+  Future<void> confirmPickup(Map<String, dynamic> pickup) =>
+      pickupAction(pickup, 'confirm');
 
   String sellerName(Map<String, dynamic> pickup) {
     final requests = pickup['pickup_requests'] as List<dynamic>? ?? [];
@@ -224,7 +227,7 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: () => accept(pickup),
+                onPressed: actionParcelId != null ? null : () => accept(pickup),
                 icon: const Icon(Icons.handshake_outlined),
                 label: const Text('Accept pickup'),
               ),
@@ -243,7 +246,9 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
                 const SizedBox(width: 10),
                 Expanded(
                   child: FilledButton.icon(
-                    onPressed: () => confirmPickup(pickup),
+                    onPressed: actionParcelId != null
+                        ? null
+                        : () => confirmPickup(pickup),
                     icon: const Icon(Icons.check),
                     label: const Text('Confirm Pickup'),
                   ),
@@ -298,10 +303,18 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
           ],
         ),
         actions: [
+          riderTools(context, riderSession),
           TextButton(
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => DeliveryDashboardPage(session: riderSession)),
-            ).then((_) { if (mounted) refresh(); }),
+            onPressed: () => Navigator.of(context)
+                .push(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        DeliveryDashboardPage(session: riderSession),
+                  ),
+                )
+                .then((_) {
+                  if (mounted) refresh();
+                }),
             child: const Text('Deliveries'),
           ),
           IconButton(

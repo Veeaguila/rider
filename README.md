@@ -65,3 +65,27 @@ flutter build apk --dart-define=API_BASE_URL=https://<alona-host>/api
 ```
 
 The public GET /api/sorting-centers endpoint can verify connectivity without logging in or changing database records. Its data list may be empty. Flutter web also requires the server to permit the application's origin through CORS.
+
+## Integration and recovery
+
+Registration uses ALONA's published address/coverage directories, partner approval,
+identity documents and conditional vehicle/license requirements. Pickup/delivery
+addresses and proof state come from ALONA. Rider tools expose chat, contact/status,
+in-app updates and owned delivery history. Earnings require agreed payout data/rules.
+
+Start recovery with docs/integration/RESUME.md, CHECKPOINT.md and PROGRESS.md. Run
+`node scripts/integration_checkpoint.cjs --verify`. If document bundle IDs disagree,
+`--recover` verifies the previous bundle, archives interrupted notes and restores
+documents only. Inspect RECOVERY_NOTES.md and source hash changes before continuing.
+Use `--run rider|alona <check-command> <args>` to persist running/completed outcomes.
+Laravel checks refuse cached config and force SQLite :memory:. No background restart
+service, unsaved-edit recovery or off-device backup is provided.
+
+Deployment requires a real HTTPS API_BASE_URL, working verification email/browser
+login, partner approval/coverage and platform camera permissions. Server PHP currently
+allows 2 MB/file and 8 MB/request; supporting the full 20 MB proof and multiple 5 MB
+registration documents requires upload_max_filesize at least 20M and post_max_size
+at least 25M (plus matching proxy limits), followed by a server restart by its operator.
+No shared runtime settings were changed. Verify device networking and web CORS with
+your real deployment. JavaScript web compile passed; optional WASM is not supported
+by the current secure-storage web dependency.

@@ -103,18 +103,20 @@ class _RegistrationPageState extends State<RegistrationPage> {
         refreshPartners();
       });
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(() {
           loadingSortingCenters = false;
           sortingCentersError = 'Could not load registration options. Check your connection and retry.';
         });
+      }
     }
   }
 
   void refreshPartners() {
     sortingCenters = RegistrationApi.matchingPartners(coverage, deliveryCities);
-    if (!sortingCenters.any((row) => row['id'] == sortingCenterId))
+    if (!sortingCenters.any((row) => row['id'] == sortingCenterId)) {
       sortingCenterId = null;
+    }
     sortingCentersError = deliveryCities.isEmpty
         ? 'Choose at least one delivery area first.'
         : sortingCenters.isEmpty
@@ -151,11 +153,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
         addressLoading = false;
       });
     } catch (_) {
-      if (mounted && revision == addressRevision)
+      if (mounted && revision == addressRevision) {
         setState(() {
           addressLoading = false;
           error = 'Could not load this region. Choose it again to retry.';
         });
+      }
     }
   }
 
@@ -185,11 +188,12 @@ class _RegistrationPageState extends State<RegistrationPage> {
         addressLoading = false;
       });
     } catch (_) {
-      if (mounted && revision == addressRevision)
+      if (mounted && revision == addressRevision) {
         setState(() {
           addressLoading = false;
           error = 'Could not load barangays. Choose the city again to retry.';
         });
+      }
     }
   }
 
@@ -198,8 +202,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
     final now = DateTime.now();
     var years = now.year - birthday!.year;
     if (now.month < birthday!.month ||
-        (now.month == birthday!.month && now.day < birthday!.day))
+        (now.month == birthday!.month && now.day < birthday!.day)) {
       years--;
+    }
     return years;
   }
 
@@ -300,6 +305,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
         'terms': '1',
         'privacy': '1',
         'vehicle_type': vehicleType!,
+        'sex': ?sex,
         'sorting_center_id': sortingCenterId.toString(),
         if (motor) ...{
           'vehicle_model': vehicleModel.text.trim(),
@@ -326,10 +332,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
         }
       });
     } catch (_) {
-      if (mounted)
+      if (mounted) {
         setState(
           () => error = 'Registration could not be confirmed. Check your connection and account status before retrying.',
         );
+      }
     } finally {
       if (mounted) setState(() => submitting = false);
     }
@@ -520,8 +527,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             )
                             .toList(),
                         (code) => setState(() {
-                          if (code != null && deliveryCities.length < 20)
+                          if (code != null && deliveryCities.length < 20) {
                             deliveryCities.add(code);
+                          }
                           refreshPartners();
                         }),
                         required: false,
@@ -612,7 +620,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             ),
                             field(lastName, 'Last name'),
                           ];
-                          if (constraints.maxWidth <= 560)
+                          if (constraints.maxWidth <= 560) {
                             return Column(
                               children: items
                                   .map(
@@ -625,6 +633,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                                   )
                                   .toList(),
                             );
+                          }
                           return Row(
                             children: [
                               for (var i = 0; i < items.length; i++)
@@ -802,10 +811,11 @@ class _RegistrationPageState extends State<RegistrationPage> {
                                 onSelected: submitting
                                     ? null
                                     : (selected) => setState(() {
-                                        if (selected)
+                                        if (selected) {
                                           licenseCodes.add(code);
-                                        else
+                                        } else {
                                           licenseCodes.remove(code);
+                                        }
                                       }),
                               ),
                           ],
