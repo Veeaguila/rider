@@ -1,0 +1,231 @@
+{
+  "phase": 4,
+  "task": "Validation completed",
+  "lastCompleted": "Phase 3 authentication/logout/readiness implemented and tested",
+  "lastVerified": "rider: node --test scripts/integration_checkpoint.test.cjs passed",
+  "phases": [
+    {
+      "number": 1,
+      "name": "API connectivity",
+      "status": "COMPLETED"
+    },
+    {
+      "number": 2,
+      "name": "Pickup/delivery addresses",
+      "status": "COMPLETED"
+    },
+    {
+      "number": 3,
+      "name": "Authentication, Logout, Account Readiness",
+      "status": "COMPLETED"
+    },
+    {
+      "number": 4,
+      "name": "Rider Registration",
+      "status": "IN PROGRESS"
+    },
+    {
+      "number": 5,
+      "name": "Pickup Workflow",
+      "status": "NOT STARTED"
+    },
+    {
+      "number": 6,
+      "name": "Delivery Workflow",
+      "status": "NOT STARTED"
+    },
+    {
+      "number": 7,
+      "name": "Profit Dashboard and Delivery History",
+      "status": "NOT STARTED"
+    },
+    {
+      "number": 8,
+      "name": "Chat, Account Management, Notifications",
+      "status": "NOT STARTED"
+    },
+    {
+      "number": 9,
+      "name": "API Errors and Security",
+      "status": "NOT STARTED"
+    },
+    {
+      "number": 10,
+      "name": "Testing and Final Review",
+      "status": "NOT STARTED"
+    }
+  ],
+  "completed": [
+    "Phase 1 configurable API URL; local public HTTP 200 check",
+    "Phase 2 collection/destination separation",
+    "Phase 3 confirmed logout, profile gates, middleware-aligned assignment"
+  ],
+  "remaining": [
+    "Phase 4 registration implementation/tests",
+    "Phases 5-10 per PROGRESS.md"
+  ],
+  "flutterFiles": [
+    "lib/services/api_config.dart",
+    "lib/services/parcel_address.dart",
+    "lib/services/rider_session.dart",
+    "lib/services/rider_session_guard.dart",
+    "lib/pages/login_page.dart",
+    "lib/pages/pickup_dashboard_page.dart",
+    "lib/pages/delivery_dashboard_page.dart",
+    "lib/pages/proof_capture_page.dart",
+    "lib/pages/registration_page.dart",
+    "test/api_config_test.dart",
+    "test/parcel_address_test.dart",
+    "test/rider_session_test.dart",
+    "README.md",
+    "AGENTS.md",
+    "docs/PROJECT_CONTEXT.md",
+    "docs/CURRENT_STATE.md",
+    "docs/ARCHITECTURE.md",
+    "scripts/integration_checkpoint.cjs",
+    "scripts/integration_checkpoint.test.cjs",
+    "lib/services/registration_api.dart",
+    "lib/services/api_error.dart",
+    "test/registration_api_test.dart"
+  ],
+  "laravelFiles": [
+    "app/Models/Rider.php",
+    "app/Http/Controllers/PartnerProfileController.php",
+    "app/Http/Controllers/Logistics/ParcelAssignmentController.php",
+    "tests/Feature/Logistics/ParcelAssignmentTest.php",
+    "tests/Feature/Logistics/RiderSessionApiTest.php",
+    "docs/SORTING_CENTER_INTEGRATION.md",
+    "AGENTS.md"
+  ],
+  "endpoints": [
+    "POST /api/rider/login",
+    "POST /api/logistics/logout",
+    "GET /api/partner/profile",
+    "GET/POST /api/rider/pickups/*",
+    "GET/POST /api/rider/deliveries/*",
+    "POST /api/rider/register",
+    "GET /api/addresses/{level}",
+    "GET /api/delivery-coverage"
+  ],
+  "tests": [
+    "Phase 1-2: 9 Flutter tests passed; local public directory HTTP 200 JSON",
+    "Phase 3: 41 Flutter tests and 33 in-memory Laravel tests passed",
+    "Phase 3 analyzer: four pre-existing proof-radio deprecation notices; no errors/warnings",
+    "rider: node --test scripts/integration_checkpoint.test.cjs => PASS; log .recovery\\logs\\1792009063313-rider.txt",
+    "rider: dart format lib/pages/registration_page.dart lib/services/registration_api.dart lib/services/api_error.dart test/registration_api_test.dart => PASS; log .recovery\\logs\\1792009400173-rider.txt",
+    "rider: flutter test --no-pub test/registration_api_test.dart test/widget_test.dart => PASS; log .recovery\\logs\\1792009414926-rider.txt",
+    "alona: php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Feature/PartnerOnboardingTest.php tests/Feature/PhilippineAddressTest.php tests/Feature/DeliveryCoverageTest.php => PASS; log .recovery\\logs\\1792009514816-alona.txt",
+    "rider: flutter analyze --no-pub --no-fatal-infos lib/pages/registration_page.dart lib/services/registration_api.dart lib/services/api_error.dart test/registration_api_test.dart => PASS; log .recovery\\logs\\1792009525549-rider.txt",
+    "rider: node --test scripts/integration_checkpoint.test.cjs => PASS; log .recovery\\logs\\1792009526812-rider.txt"
+  ],
+  "issues": [
+    "Rider is not Git-tracked; all Rider work exists only locally",
+    "Device/production/full workflow unverified",
+    "Profit calculation and rider payout storage unspecified; no monetary values will be invented",
+    "Registration still sends the legacy contract",
+    "Four pre-existing proof-radio deprecation notices"
+  ],
+  "operations": [],
+  "next": "Run registration tests and existing ALONA onboarding/address/coverage checks",
+  "event": "rider: node --test scripts/integration_checkpoint.test.cjs passed",
+  "id": "2026-10-14T20:25:26.828Z",
+  "projectPaths": {
+    "rider": "C:\\Users\\user\\rider",
+    "alona": "C:\\Users\\user\\alona-ecommerce-integration"
+  },
+  "repositories": {
+    "rider": {
+      "tracked": false,
+      "branch": "N/A",
+      "head": "N/A",
+      "status": "Not a Git repository; source changes exist only on disk."
+    },
+    "alona": {
+      "tracked": true,
+      "branch": "feature/sorting-center",
+      "head": "da3514f",
+      "status": "M app/Http/Controllers/Logistics/ParcelAssignmentController.php\n M app/Http/Controllers/PartnerProfileController.php\n M app/Models/Rider.php\n M docs/SORTING_CENTER_INTEGRATION.md\n M tests/Feature/Logistics/ParcelAssignmentTest.php\n?? AGENTS.md\n?? tests/Feature/Logistics/RiderSessionApiTest.php"
+    }
+  },
+  "hashes": {
+    "rider": {
+      "lib/services/api_config.dart": "10ddae2ef766a5de6158b709baa6a2ba5e25f6d51318779c1e54959bc3870c14",
+      "lib/services/parcel_address.dart": "d5e4f7885dc1f13413fddc348afe6691d68a95d6baae4f2de9717a1f9478af2b",
+      "lib/services/rider_session.dart": "573bf472afbf494dc9330bf4b5e3243c32ac565cd2e8d85eb22d1dfddbf88e10",
+      "lib/services/rider_session_guard.dart": "b4f2e660bdd27d82cc6e2fe53aa8fb2890b78cf74905240ab713991612995d49",
+      "lib/pages/login_page.dart": "6fe1bb3f94846dd2ad5019080fb8acc203369a4d4c1a2629e623438cd4b7e348",
+      "lib/pages/pickup_dashboard_page.dart": "917d2ebcfc436dfbbe6aa0b5fa25f5094505b6b949a41c3a9bd63f74c31fc27e",
+      "lib/pages/delivery_dashboard_page.dart": "6dc6e7fce91611e4721868058a58024afa8d9c1e038bbcce6a1419b15cc000d9",
+      "lib/pages/proof_capture_page.dart": "18eda93a5b1fff83ddca9dbb3d6d3004e4a0ac4e13d96dd66d1a2f1ee2488b3e",
+      "lib/pages/registration_page.dart": "ee095b96916c0d48da7e64af914a1adaed3c90a7878bccd8b52ad17e1750a57a",
+      "test/api_config_test.dart": "eb0fb282b796282fb67a15f2bcf1e1fe2a34160303ffa7ed19364d8355f066a4",
+      "test/parcel_address_test.dart": "b7877e566666427426a1cedb6cc8bf2379fed6e6c0c74049169be8ed6e3e25a7",
+      "test/rider_session_test.dart": "74b219b1d94f905fa35b93ec60bbfec7a2dd4939c48431ec9e366303ff5b44e7",
+      "README.md": "c9fb44a9f17bd4472a4774d24083392951e957a8b4e10c666293dbc4e923ae9e",
+      "AGENTS.md": "3e5db2fa4de1a3316ea3b272f4010be05f40ca202b9c810b5ad8ef85181ff8a4",
+      "docs/PROJECT_CONTEXT.md": "dcf78bc5353f978b5600696b6cd5b89f48a77a534245075ab5b94f47f50c50bd",
+      "docs/CURRENT_STATE.md": "2a7531de81a1bf5c2a1524a4a7a1f0c5976ac7c7150fa2adff6def71085cfd1c",
+      "docs/ARCHITECTURE.md": "1de7b29eba35a9b19bf692bdffc2b50cb381b8994688f505681e45552609a345",
+      "scripts/integration_checkpoint.cjs": "3549a1d5ff2ccf09033a309d75bad1caaf336a28079f0556c75ba8219b7c133f",
+      "scripts/integration_checkpoint.test.cjs": "e91e94166e33368071409a0fdbe267fd5782af34b87079c971c37c575c86e419",
+      "lib/services/registration_api.dart": "7ec79ba5c0b6c9956ca892f77b6138bda29ac6d085fa4d81b7045bc6317c245c",
+      "lib/services/api_error.dart": "b97b0a78f4763055ed898d3641768f29b8df37308273dcfb8622850ad26528a5",
+      "test/registration_api_test.dart": "7f2d86d1e2da639e5a7c9a63b56e792e9ecc49a491ee350046c6ad68dddd8a3e"
+    },
+    "alona": {
+      "app/Models/Rider.php": "e08de09b21987b2811f68e8a65636af135153cb51a825558c9632cc2f71b59d4",
+      "app/Http/Controllers/PartnerProfileController.php": "0a440496a822f8e23f492d122f661a2cab43d44624bd8960eb30bd615d7e1e47",
+      "app/Http/Controllers/Logistics/ParcelAssignmentController.php": "03d286db8c24d7f42ac618ce5a59a43050d9b89a2bcd28ceee272ed386a037ef",
+      "tests/Feature/Logistics/ParcelAssignmentTest.php": "6621e29d9943e345d2f1ebd2bdc7176cb1c4eae2bb5de150412b52fc64c2ee08",
+      "tests/Feature/Logistics/RiderSessionApiTest.php": "9600e2061039dfd92ecf15e39e3c17f8a23da97e80339c1f99be95ecbaff7be9",
+      "docs/SORTING_CENTER_INTEGRATION.md": "fa7f8a7d6d63215daa5ea3d104833b39854bb39ec68510924afe67be90cec54a",
+      "AGENTS.md": "2b4ffcd381c8112d2656acbc6f9615b1b2295f3c2ca7bade0a87c97ae5232f12"
+    }
+  },
+  "history": [
+    {
+      "id": "2026-10-14T20:16:28.225Z",
+      "event": "Initialized durable recovery from verified existing Phases 1-3; prior interrupted turn started no tool operations. No commit or push."
+    },
+    {
+      "id": "2026-10-14T20:17:41.756Z",
+      "event": "Initialized durable recovery from verified existing Phases 1-3; prior interrupted turn started no tool operations. No commit or push."
+    },
+    {
+      "id": "2026-10-14T20:17:43.322Z",
+      "event": "rider: node --test scripts/integration_checkpoint.test.cjs passed"
+    },
+    {
+      "id": "2026-10-14T20:19:56.857Z",
+      "event": "Started Phase 4 after verifying existing Phase 3 and crash recovery"
+    },
+    {
+      "id": "2026-10-14T20:22:01.486Z",
+      "event": "Saved Phase 4 registration edit batch atomically; source baseline preserved in .recovery"
+    },
+    {
+      "id": "2026-10-14T20:23:17.847Z",
+      "event": "Saved Phase 4 multipart and directory regression tests"
+    },
+    {
+      "id": "2026-10-14T20:23:20.183Z",
+      "event": "rider: dart format lib/pages/registration_page.dart lib/services/registration_api.dart lib/services/api_error.dart test/registration_api_test.dart passed"
+    },
+    {
+      "id": "2026-10-14T20:23:34.938Z",
+      "event": "rider: flutter test --no-pub test/registration_api_test.dart test/widget_test.dart passed"
+    },
+    {
+      "id": "2026-10-14T20:25:14.831Z",
+      "event": "alona: php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Feature/PartnerOnboardingTest.php tests/Feature/PhilippineAddressTest.php tests/Feature/DeliveryCoverageTest.php passed"
+    },
+    {
+      "id": "2026-10-14T20:25:25.589Z",
+      "event": "rider: flutter analyze --no-pub --no-fatal-infos lib/pages/registration_page.dart lib/services/registration_api.dart lib/services/api_error.dart test/registration_api_test.dart passed"
+    },
+    {
+      "id": "2026-10-14T20:25:26.828Z",
+      "event": "rider: node --test scripts/integration_checkpoint.test.cjs passed"
+    }
+  ]
+}

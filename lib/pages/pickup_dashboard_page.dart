@@ -1,0 +1,438 @@
+import 'dart:convert';
+
+import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'package:url_launcher/url_launcher.dart';
+
+import '../services/api_config.dart';
+import '../services/parcel_address.dart';
+import '../services/rider_session.dart';
+import '../services/rider_session_guard.dart';
+import 'delivery_dashboard_page.dart';
+import 'login_page.dart';
+
+class PickupDashboardPage extends StatefulWidget {
+  final RiderSession? session;
+  const PickupDashboardPage({super.key, this.session});
+
+  @override
+  State<PickupDashboardPage> createState() => _PickupDashboardPageState();
+}
+
+class _PickupDashboardPageState extends State<PickupDashboardPage>
+    with WidgetsBindingObserver, RiderSessionGuard<PickupDashboardPage> {
+  @override
+  late final riderSession = widget.session ?? RiderSession();
+  bool loggingOut = false;
+  List<Map<String, dynamic>> available = [];
+  List<Map<String, dynamic>> mine = [];
+  bool loading = true;
+  String? error;
+  String? success;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    refresh();
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && !loggingOut) refresh();
+  }
+
+  Future<void> refresh() async {
+    if (loggingOut) return;
+    setState(() {
+      loading = true;
+      available = [];
+      mine = [];
+      error = null;
+    });
+    try {
+      final token = await readyToken();
+      final headers = {
+        'Accept': 'application/json',
+        'Authorization': 'Bearer $token',
+      };
+      final availableResponse = await http.get(
+        Uri.parse(pickupsAvailableUrl),
+        headers: headers,
+      );
+      await checkAuthorization(availableResponse.statusCode);
+      if (availableResponse.statusCode != 200) {
+        throw Exception(availableResponse.body);
+      }
+      final mineResponse = await http.get(
+        Uri.parse(pickupsMineUrl),
+        headers: headers,
+      );
+      await checkAuthorization(mineResponse.statusCode);
+      if (mineResponse.statusCode != 200) throw Exception(mineResponse.body);
+      if (!mounted) return;
+      setState(() {
+        available = List<Map<String, dynamic>>.from(
+          jsonDecode(availableResponse.body)['data'] as List,
+        );
+        mine = List<Map<String, dynamic>>.from(
+          jsonDecode(mineResponse.body)['data'] as List,
+        );
+        loading = false;
+      });
+    } catch (exception) {
+      if (!mounted) return;
+      setState(() {
+        loading = false;
+        error = exception.toString().replaceFirst('Exception: ', '');
+      });
+    }
+
+  }
+
+  Future<void> logout() async {
+    if (loggingOut) return;
+    setState(() => loggingOut = true);
+    try {
+      await riderSession.logout();
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const LoginPage()),
+        (route) => false,
+      );
+    } catch (failure) {
+      if (!mounted) return;
+      setState(() => error = failure is SessionFailure ? failure.message
+          : 'Could not clear your session. Please retry logout.');
+    } finally {
+      if (mounted) setState(() => loggingOut = false);
+    }
+  }
+  Future<void> accept(Map<String, dynamic> pickup) async {
+    if (loggingOut) return;
+    try {
+      final token = await readyToken();
+      final response = await http.post(
+        Uri.parse('$pickupsUrl/${pickup['id']}/accept'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      await checkAuthorization(response.statusCode);
+      if (!mounted) return;
+      if (response.statusCode == 200) {
+        await refresh();
+        return;
+      }
+      final payload = jsonDecode(response.body) as Map<String, dynamic>;
+      final message =
+          payload['message']?.toString() ?? 'Could not accept this pickup.';
+      await refresh();
+      if (mounted) setState(() => error = message);
+    } catch (exception) {
+      if (!mounted) return;
+      final message = exception.toString().replaceFirst('Exception: ', '');
+      await refresh();
+      if (mounted) setState(() => error = message);
+    }
+  }
+
+  Future<void> openMaps(Map<String, dynamic> pickup) async {
+    final location = address(pickup);
+    if (location.isEmpty) {
+      setState(() => error = 'The pickup address is unavailable. Contact the sorting center.');
+      return;
+    }
+    final uri = Uri.https('maps.google.com', '/', {'q': location});
+    if (!await launchUrl(uri, mode: LaunchMode.externalApplication) &&
+        mounted) {
+      setState(() => error = 'Could not open the address in Maps.');
+    }
+  }
+
+  Future<void> confirmPickup(Map<String, dynamic> pickup) async {
+    if (loggingOut) return;
+    try {
+      final token = await readyToken();
+      final response = await http.post(
+        Uri.parse('$pickupsUrl/${pickup['id']}/confirm'),
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+      await checkAuthorization(response.statusCode);
+      if (!mounted) return;
+      if (response.statusCode != 200) {
+        final payload = jsonDecode(response.body) as Map<String, dynamic>;
+        throw Exception(
+          payload['message']?.toString() ?? 'Could not confirm this pickup.',
+        );
+      }
+      await refresh();
+      if (mounted) setState(() => success = 'Pickup confirmed successfully.');
+    } catch (exception) {
+      if (!mounted) return;
+      setState(
+        () => error = exception.toString().replaceFirst('Exception: ', ''),
+      );
+    }
+  }
+
+  String sellerName(Map<String, dynamic> pickup) {
+    final requests = pickup['pickup_requests'] as List<dynamic>? ?? [];
+    final seller = requests.isNotEmpty
+        ? requests.first['seller'] as Map<String, dynamic>?
+        : null;
+    return seller?['name']?.toString() ?? 'Seller';
+  }
+
+  String address(Map<String, dynamic> pickup) => pickupAddress(pickup);
+
+  Widget pickupCard(Map<String, dynamic> pickup, {required bool isMine}) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xffdce7e2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Order ${pickup['order_id']}',
+            style: const TextStyle(fontWeight: FontWeight.w700),
+          ),
+          const SizedBox(height: 8),
+          Text('Seller: ${sellerName(pickup)}'),
+          const SizedBox(height: 4),
+          Text(
+            'Pickup address: ${address(pickup).isEmpty ? 'Unavailable' : address(pickup)}',
+            style: TextStyle(color: Colors.grey.shade700),
+          ),
+          if (!isMine) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: FilledButton.icon(
+                onPressed: () => accept(pickup),
+                icon: const Icon(Icons.handshake_outlined),
+                label: const Text('Accept pickup'),
+              ),
+            ),
+          ] else ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => openMaps(pickup),
+                    icon: const Icon(Icons.map_outlined),
+                    label: const Text('Open in Maps'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: FilledButton.icon(
+                    onPressed: () => confirmPickup(pickup),
+                    icon: const Icon(Icons.check),
+                    label: const Text('Confirm Pickup'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget jobSection(
+    String title,
+    List<Map<String, dynamic>> jobs, {
+    required bool isMine,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+        ),
+        const SizedBox(height: 12),
+        if (jobs.isEmpty)
+          Text(
+            isMine
+                ? 'No accepted pickups yet.'
+                : 'No pickup jobs are available right now.',
+            style: TextStyle(color: Colors.grey.shade700),
+          )
+        else
+          ...jobs.map((pickup) => pickupCard(pickup, isMine: isMine)),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Row(
+          children: [
+            Image.asset(
+              'assets/images/alona/alonalogo1.png',
+              height: 36,
+              width: 36,
+            ),
+            const SizedBox(width: 10),
+            const Text('Pickups'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => DeliveryDashboardPage(session: riderSession)),
+            ).then((_) { if (mounted) refresh(); }),
+            child: const Text('Deliveries'),
+          ),
+          IconButton(
+            onPressed: loading ? null : refresh,
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh',
+          ),
+          IconButton(
+            onPressed: loggingOut ? null : logout,
+            icon: const Icon(Icons.logout),
+            tooltip: 'Sign out',
+          ),
+        ],
+      ),
+      body: RefreshIndicator(
+        onRefresh: refresh,
+        child: ListView(
+          padding: const EdgeInsets.all(20),
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xff008b8b),
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    _greeting(),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Your pickup work queue',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.9),
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+                  Row(
+                    children: [
+                      _summaryCount('Available pickups', available.length),
+                      const SizedBox(width: 12),
+                      _summaryCount('Accepted by you', mine.length),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Accept a confirmed seller pickup. Completion starts in Screen 4.',
+              style: TextStyle(color: Colors.grey.shade700),
+            ),
+            if (error != null) ...[
+              const SizedBox(height: 16),
+              _statusMessage(error!, false),
+            ],
+            if (success != null) ...[
+              const SizedBox(height: 16),
+              _statusMessage(success!, true),
+            ],
+            if (loading) ...[
+              const SizedBox(height: 40),
+              const Center(child: CircularProgressIndicator()),
+            ] else ...[
+              const SizedBox(height: 28),
+              jobSection('Available pickup jobs', available, isMine: false),
+              const SizedBox(height: 28),
+              jobSection('My accepted pickups', mine, isMine: true),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _greeting() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'Good morning';
+    if (hour < 17) return 'Good afternoon';
+    return 'Good evening';
+  }
+
+  Widget _summaryCount(String label, int count) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.14),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              count.toString(),
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            Text(
+              label,
+              style: const TextStyle(color: Colors.white, fontSize: 12),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _statusMessage(String text, bool isSuccess) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: isSuccess ? const Color(0xffdff4e9) : const Color(0xffffe6e2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: isSuccess ? const Color(0xff176b43) : const Color(0xff9b3125),
+        ),
+      ),
+    );
+  }
+}
