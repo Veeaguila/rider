@@ -1,11 +1,11 @@
 # Integration checkpoint
 
-Checkpoint: 2026-10-15T10:26:02.203Z
+Checkpoint: 2026-10-15T10:28:21.185Z
 Saved synchronously; timestamps are UTC.
 
 CURRENT PHASE: 10
-CURRENT TASK: User-authorized save of Rider repository to GitHub
-LAST COMPLETED TASK: Implemented approved shipment grouping, additive migration, safe Laravel workflows, owned finance reads and admin manual settlement. Final 96 Logistics tests/581 assertions PASS including 17 finance tests; 28 PHP lint checks and scoped credential/whitespace review PASS. Updated both project memories.
+CURRENT TASK: Rider GitHub source save verified; publish final checkpoint documentation
+LAST COMPLETED TASK: User-authorized Rider source commit a7cf1c98a31c73f976b8448b290222085367a78a pushed to origin/master; git ls-remote independently matched local HEAD. ALONA remains separate/uncommitted.
 LAST VERIFIED TEST: Current code: 96 Logistics tests / 581 assertions PASS (17 focused finance tests / 128 assertions separately PASS); 28 PHP files linted; both Git diff and credential-pattern checks PASS
 
 COMPLETED TASKS:
@@ -65,6 +65,7 @@ MODIFIED FLUTTER FILES:
 - docs/integration/PHASE7_PROPOSAL.md
 - docs/DECISIONS.md
 - docs/integration/PHASE7_SHIPMENTS.md
+- docs/integration/GITHUB_SAVE.md
 
 MODIFIED LARAVEL FILES:
 
@@ -187,14 +188,10 @@ M app/Http/Controllers/BuyerOrderController.php
 
 ### Rider
 
-Git tracked: true; branch: master; HEAD: 99d7363
+Git tracked: true; branch: master; HEAD: a7cf1c9
 
 ```text
-M AGENTS.md
- M README.md
- M docs/ARCHITECTURE.md
- M docs/CURRENT_STATE.md
- M docs/PROJECT_CONTEXT.md
+M docs/CURRENT_STATE.md
  M docs/integration/CHANGELOG.md
  M docs/integration/CHANGELOG.md.previous
  M docs/integration/CHECKPOINT.md
@@ -205,31 +202,7 @@ M AGENTS.md
  M docs/integration/RESUME.md.previous
  M docs/integration/checkpoint-state.json
  M docs/integration/checkpoint-state.json.previous
- M ios/Runner/Info.plist
- M lib/pages/delivery_dashboard_page.dart
- M lib/pages/login_page.dart
- M lib/pages/pickup_dashboard_page.dart
- M lib/pages/proof_capture_page.dart
- M lib/pages/registration_page.dart
- M lib/services/api_error.dart
- M lib/services/registration_api.dart
- M lib/services/rider_session.dart
- M lib/services/rider_session_guard.dart
- M scripts/integration_checkpoint.cjs
- M scripts/integration_checkpoint.test.cjs
-?? docs/DECISIONS.md
-?? docs/integration/FINAL_REVIEW.md
-?? docs/integration/PHASE7_PROPOSAL.md
-?? docs/integration/PHASE7_SHIPMENTS.md
-?? lib/pages/delivery_history_page.dart
-?? lib/pages/rider_portal_page.dart
-?? lib/services/rider_portal_api.dart
-?? scripts/checkpoint_recovery.cjs
-?? test/api_errors_test.dart
-?? test/delivery_history_test.dart
-?? test/delivery_workflow_test.dart
-?? test/pickup_workflow_test.dart
-?? test/rider_portal_test.dart
+?? docs/integration/GITHUB_SAVE.md
 ```
 
 No automatic commit or push. ALONA tracked status above includes all existing changes; ownership must be checked before committing. Rider changes are tracked by Git; HEAD and working-tree status above distinguish committed/local work.
@@ -244,9 +217,9 @@ KNOWN ISSUES:
 
 INTERRUPTED OR RUNNING OPERATIONS:
 
-- Rider GitHub publication in progress; result UNKNOWN until remote ref verification
+- None recorded.
 
-NEXT ACTION: Publish reviewed Rider files to https://github.com/aldriannoriel/rider.git on master; verify remote commit; record publication checkpoint. ALONA remains separate/uncommitted.
+NEXT ACTION: Verify Rider master against origin/master and check working-tree status; if clean and matching, GitHub save including final checkpoint documentation is complete and must not be repeated. Otherwise finish publishing only the reviewed checkpoint docs under the existing user authorization. ALONA backend remains local/separate; remaining integration work is operator/manual deployment and acceptance, with no automatic production migrations or data changes.
 
 RECOVERY NOTES:
 

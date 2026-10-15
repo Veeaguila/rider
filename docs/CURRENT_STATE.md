@@ -26,5 +26,6 @@
   are in docs/integration/FINAL_REVIEW.md. Subsequent Phase 7 code/test evidence is
   in current checkpoints and ALONA docs/DELIVERY_FINANCE.md; earlier commit lists need
   the new backend files included before any later explicitly authorized commit.
-- No automatic commit, push, production migration, dependency installation or production-data
-  operation was performed. Existing ALONA backend/database and UI styling are reused.
+- Rider source/checkpoints published to github.com/aldriannoriel/rider on master
+  with explicit user authorization; see integration/GITHUB_SAVE.md. ALONA changes
+  remain local and separate. No production migration/data operation or dependency install.

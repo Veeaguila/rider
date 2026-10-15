@@ -1,6 +1,6 @@
 # Integration progress
 
-Checkpoint: 2026-10-15T10:26:02.203Z
+Checkpoint: 2026-10-15T10:28:21.185Z
 
 ALONA is the single backend and database. Phase definitions below supersede the earlier six-phase outline.
 

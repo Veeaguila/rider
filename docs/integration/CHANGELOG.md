@@ -1,6 +1,6 @@
 # Integration changelog
 
-Checkpoint: 2026-10-15T10:26:02.203Z
+Checkpoint: 2026-10-15T10:28:21.185Z
 
 - 2026-10-14T20:16:28.225Z: Initialized durable recovery from verified existing Phases 1-3; prior interrupted turn started no tool operations. No commit or push.
 - 2026-10-14T20:17:41.756Z: Initialized durable recovery from verified existing Phases 1-3; prior interrupted turn started no tool operations. No commit or push.
@@ -113,3 +113,4 @@ Checkpoint: 2026-10-15T10:26:02.203Z
 - 2026-10-15T10:19:47.787Z: alona: php vendor/phpunit/phpunit/phpunit --do-not-cache-result tests/Feature/Logistics passed
 - 2026-10-15T10:22:06.584Z: Phase 7 backend implementation completed, final automated checks passed and both project memories updated; crash-safe handoff saved
 - 2026-10-15T10:26:02.203Z: User explicitly authorized saving Rider to GitHub; verified empty destination and reviewed source/checkpoint file scope
+- 2026-10-15T10:27:57.636Z: Rider source commit successfully saved to GitHub and independently verified; publication receipt/checkpoint updated

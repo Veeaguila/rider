@@ -1,7 +1,7 @@
 {
   "phase": 10,
-  "task": "Phase 7 backend complete; final manual/deployment verification remains",
-  "lastCompleted": "Implemented approved shipment grouping, additive migration, safe Laravel workflows, owned finance reads and admin manual settlement. Final 96 Logistics tests/581 assertions PASS including 17 finance tests; 28 PHP lint checks and scoped credential/whitespace review PASS. Updated both project memories.",
+  "task": "Rider GitHub source save verified; publish final checkpoint documentation",
+  "lastCompleted": "User-authorized Rider source commit a7cf1c98a31c73f976b8448b290222085367a78a pushed to origin/master; git ls-remote independently matched local HEAD. ALONA remains separate/uncommitted.",
   "lastVerified": "Current code: 96 Logistics tests / 581 assertions PASS (17 focused finance tests / 128 assertions separately PASS); 28 PHP files linted; both Git diff and credential-pattern checks PASS",
   "phases": [
     {
@@ -108,7 +108,8 @@
     "docs/integration/FINAL_REVIEW.md",
     "docs/integration/PHASE7_PROPOSAL.md",
     "docs/DECISIONS.md",
-    "docs/integration/PHASE7_SHIPMENTS.md"
+    "docs/integration/PHASE7_SHIPMENTS.md",
+    "docs/integration/GITHUB_SAVE.md"
   ],
   "laravelFiles": [
     "app/Models/Rider.php",
@@ -193,9 +194,9 @@
     "PHP/proxy upload limits still need operator verification; notifications remain in-app; optional WASM limitation unchanged."
   ],
   "operations": [],
-  "next": "Resume with checkpoint --verify and both Git states; read ALONA docs/DELIVERY_FINANCE.md and architecture map plus Rider CURRENT_STATE. Phase 7 backend is complete; do not reimplement or rerun passed checks without source changes. Remaining work is operator-coordinated migration deployment, disposable production-engine contention checks and manual live/device/email/API acceptance with authorized test data. Do not automatically migrate production, stage, commit, push, reset or modify production records.",
-  "event": "Phase 7 backend implementation completed, final automated checks passed and both project memories updated; crash-safe handoff saved",
-  "id": "2026-10-15T10:22:06.584Z",
+  "next": "Publish this final checkpoint documentation as a follow-up Rider commit, then verify GitHub branch tip and clean Rider worktree. ALONA backend changes remain local; do not publish them to Rider. Resume remaining manual/deployment checks using existing verified state.",
+  "event": "Rider source commit successfully saved to GitHub and independently verified; publication receipt/checkpoint updated",
+  "id": "2026-10-15T10:27:57.636Z",
   "projectPaths": {
     "rider": "C:\\Users\\user\\rider",
     "alona": "C:\\Users\\user\\alona-ecommerce-integration"
@@ -204,8 +205,8 @@
     "rider": {
       "tracked": true,
       "branch": "master",
-      "head": "99d7363",
-      "status": "M AGENTS.md\n M README.md\n M docs/ARCHITECTURE.md\n M docs/CURRENT_STATE.md\n M docs/PROJECT_CONTEXT.md\n M docs/integration/CHANGELOG.md\n M docs/integration/CHANGELOG.md.previous\n M docs/integration/CHECKPOINT.md\n M docs/integration/CHECKPOINT.md.previous\n M docs/integration/PROGRESS.md\n M docs/integration/PROGRESS.md.previous\n M docs/integration/RESUME.md\n M docs/integration/RESUME.md.previous\n M docs/integration/checkpoint-state.json\n M docs/integration/checkpoint-state.json.previous\n M ios/Runner/Info.plist\n M lib/pages/delivery_dashboard_page.dart\n M lib/pages/login_page.dart\n M lib/pages/pickup_dashboard_page.dart\n M lib/pages/proof_capture_page.dart\n M lib/pages/registration_page.dart\n M lib/services/api_error.dart\n M lib/services/registration_api.dart\n M lib/services/rider_session.dart\n M lib/services/rider_session_guard.dart\n M scripts/integration_checkpoint.cjs\n M scripts/integration_checkpoint.test.cjs\n?? docs/DECISIONS.md\n?? docs/integration/FINAL_REVIEW.md\n?? docs/integration/PHASE7_PROPOSAL.md\n?? docs/integration/PHASE7_SHIPMENTS.md\n?? lib/pages/delivery_history_page.dart\n?? lib/pages/rider_portal_page.dart\n?? lib/services/rider_portal_api.dart\n?? scripts/checkpoint_recovery.cjs\n?? test/api_errors_test.dart\n?? test/delivery_history_test.dart\n?? test/delivery_workflow_test.dart\n?? test/pickup_workflow_test.dart\n?? test/rider_portal_test.dart"
+      "head": "a7cf1c9",
+      "status": "M docs/CURRENT_STATE.md\n?? docs/integration/GITHUB_SAVE.md"
     },
     "alona": {
       "tracked": true,
@@ -231,7 +232,7 @@
       "README.md": "b0e6e42c4608f8e8551a96baccb89ff3861e3d18ec711383537d9ab1a71e62c0",
       "AGENTS.md": "15069cab5b98047f1c5dd80ff4e61cea89b3afd71b157c62a413f92599da715d",
       "docs/PROJECT_CONTEXT.md": "056bd9c6a37503971f02cfffbdca1f55c675b60eaf57555f2f37adaf94b9f129",
-      "docs/CURRENT_STATE.md": "d9287a92fcacb28dcb1a64a391ef1d34d21bd4d5cb22962350d22d151679b1ce",
+      "docs/CURRENT_STATE.md": "97320e353202d74111f2e40a58a12a34ec7fa1ec5f97093c0ed742ed3094f904",
       "docs/ARCHITECTURE.md": "79522f0ddbd768065282e8bf70d7a769a774fb72d83277f4583d8a67bdefca2b",
       "scripts/integration_checkpoint.cjs": "12d9ac354c3c554b9c4f054e72ba101b5147f85cbb763262cd2e72e1dbe62c9d",
       "scripts/integration_checkpoint.test.cjs": "7955a1382860c664da3668313441cbafe76cb8d5ef90c580c076c80461c6f815",
@@ -251,7 +252,8 @@
       "docs/integration/FINAL_REVIEW.md": "8d7d985e4f023fa1c8f8cc359b2f145d38dc9d2c8650a4ecbd2118fcbe4407ba",
       "docs/integration/PHASE7_PROPOSAL.md": "48fc8004e9afbbc02071b132b855913d03476860f638129954177d6b3f0b82b2",
       "docs/DECISIONS.md": "0abd0869a3a3d54dc57b6cd4ff189f8b3e2219efa165c7ef356ff87d757d9c98",
-      "docs/integration/PHASE7_SHIPMENTS.md": "b3032f58549546f6bd884bbf59d32e77fa91091f553a13d2d3106793bfe0d86b"
+      "docs/integration/PHASE7_SHIPMENTS.md": "b3032f58549546f6bd884bbf59d32e77fa91091f553a13d2d3106793bfe0d86b",
+      "docs/integration/GITHUB_SAVE.md": "39b5ec49f18c4c521b5d8e2b8e76656fb8802d9843188cdb6fe593e9d5e14be3"
     },
     "alona": {
       "app/Models/Rider.php": "e08de09b21987b2811f68e8a65636af135153cb51a825558c9632cc2f71b59d4",
@@ -728,6 +730,14 @@
     {
       "id": "2026-10-15T10:22:06.584Z",
       "event": "Phase 7 backend implementation completed, final automated checks passed and both project memories updated; crash-safe handoff saved"
+    },
+    {
+      "id": "2026-10-15T10:26:02.203Z",
+      "event": "User explicitly authorized saving Rider to GitHub; verified empty destination and reviewed source/checkpoint file scope"
+    },
+    {
+      "id": "2026-10-15T10:27:57.636Z",
+      "event": "Rider source commit successfully saved to GitHub and independently verified; publication receipt/checkpoint updated"
     }
   ],
   "manualChecks": {
@@ -743,5 +753,12 @@
     "New orders only, no backfill; zero new-order buyer shipping including express per prior approval; preserve express method behavior and report conflicts",
     "Separate full manual collection and payout; unchanged Flutter UI/history",
     "Authorized to create schema/migrations/APIs/integration code; do not run production migrations or modify production data"
-  ]
+  ],
+  "githubSave": {
+    "branch": "master",
+    "backendPublished": false,
+    "sourceCommit": "a7cf1c98a31c73f976b8448b290222085367a78a",
+    "sourceRemoteVerified": true,
+    "repository": "https://github.com/aldriannoriel/rider.git"
+  }
 }
