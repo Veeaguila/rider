@@ -1,6 +1,6 @@
 # Integration progress
 
-Checkpoint: 2026-10-15T10:28:21.185Z
+Checkpoint: 2026-10-16T07:21:50.130Z
 
 ALONA is the single backend and database. Phase definitions below supersede the earlier six-phase outline.
 
@@ -12,10 +12,10 @@ ALONA is the single backend and database. Phase definitions below supersede the 
 | 4 | Rider Registration | COMPLETED |
 | 5 | Pickup Workflow | COMPLETED |
 | 6 | Delivery Workflow | COMPLETED |
-| 7 | Profit Dashboard and Delivery History | COMPLETED (backend) |
+| 7 | Profit Dashboard and Delivery History | COMPLETED (backend + Rider view) |
 | 8 | Chat, Account Management, Notifications | COMPLETED |
 | 9 | API Errors and Security | COMPLETED |
-| 10 | Testing and Final Review | NEEDS VERIFICATION |
+| 10 | Testing and Final Review | BLOCKED ON DATABASE ID; MANUAL ACCEPTANCE PENDING |
 
 Completed
 
@@ -23,17 +23,21 @@ Completed
 - Phase 4 canonical registration/coverage/multipart contract complete; existing sex field persisted optionally
 - Phase 5 pickup acceptance/completion, conflict/duplicate-action handling complete
 - Phase 6 delivery start/failure/completion, server proof state and byte-based private proof uploads complete
-- Phase 7 shipment finance backend complete: approved one seller shipment/order/seller, all-member proof completion, PHP 50/10/40 unique accrual, new-order zero buyer fees, independent full manual settlement APIs; Rider UI/history preserved
-- Phase 8 existing chat, own contact/status updates and in-app unread/task notifications complete
+- Phase 7 complete locally: shipment finance backend plus Rider earnings summary/history API view, with backend-only money calculations and existing operational/history data contracts preserved
+- Phase 8 complete locally: scoped chat, persistent owned Rider notification feed/read/polling, actual profile/private photos, contact and canonical-address editing with Logistics reapproval.
 - Phase 9 safe API errors, same-origin credential protection, eligibility and rollback-safe proof storage complete
-- Phase 10 automated regression/static/recovery checks and JavaScript web compile complete; manual deployment/device checks outstanding
+- Phase 10 automated focused functionality regressions/static/security checks complete locally; earlier web/MySQL finance evidence retained, new migration matching-engine rehearsal and manual/live acceptance pending.
+- User-approved Rider UI refinement complete with existing colors preserved; 93 Flutter tests, clean final analysis, web build and responsive Edge visual checks pass.
 
 Remaining
 
-- Operator deployment remains pending: migration file prepared/tested in SQLite memory only, never applied to application/production database. Review migration and coordinate code/schema release before accepting new orders.
-- Verify concurrent sibling completion and manual settlement on a disposable database matching production engine; SQLite does not exercise MySQL lock contention.
-- Manual live checkout (standard/express zero buyer fees), private proof completion and admin session/CSRF finance acceptance remain unrun.
-- Phase 10 physical device/camera/native builds, SMTP verification/approval, HTTPS/CORS/upload limits and authorized end-to-end workflow remain pending.
-- No staging/commit/push/reset or production data operation. Existing local and teammate changes preserved; earlier commit lists must include newly recorded backend files if later explicitly authorized.
+- BLOCKED: identify actual populated ALONA MySQL schema/configuration. Confirmed project .env selects empty local SQLite; MySQL80 localhost:3306/InnoDB exists, Workbench has no schema saved; OS denies data-directory listing. Need actual schema name or original config source, never passwords in chat.
+- PENDING: read-only actual database migration/schema inventory and an explicitly approved clone rehearsal before approval for actual Phase 7 migration. No further database creation or configuration switches without approval.
+- PENDING: production isolation, seller-collection contention and multiple-seller/shared-order races; 16 other two-process MySQL races and rollback/retry passed on equivalent schema.
+- PENDING: live device/camera/email/HTTPS/CORS/upload/browser Admin settlement and Rider refresh acceptance; checklist/procedure in RELEASE_READINESS.md.
+- Preserve both uncommitted worktrees and full checkpoint backups. No commits, pushes, resets or actual database migrations without explicit approval.
+- PENDING: actual-schema inventory must include both prepared finance and notification migrations; rehearse notification uniqueness/read races, concurrent profile photo/Google sign-in and address/Logistics approval locks on an approved MySQL copy.
+- PENDING: native camera/gallery/activity interruption; real profile/photo/address reapproval and notification/account/message/earnings/payout end-to-end acceptance. No new demo or preview accounts.
+- PENDING: approved Android toolchain/native builds and physical QR/Code128 camera/permission/lifecycle tests; live four-role Seller notice/private proof acceptance. No further feature rewrite or migrations automatically.
 
 Evidence and limitations: see CHECKPOINT.md and existing ../CURRENT_STATE.md.

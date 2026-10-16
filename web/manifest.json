@@ -1,11 +1,11 @@
 {
-    "name": "rider_app",
-    "short_name": "rider_app",
+    "name": "ALONA Rider",
+    "short_name": "ALONA Rider",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Manage ALONA pickups, deliveries, and your rider account.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

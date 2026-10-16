@@ -1,12 +1,17 @@
 # Final integration review — 2026-10-15
 
+Current release findings, scoped commit boundaries and existing-database procedure:
+[RELEASE_READINESS.md](RELEASE_READINESS.md). Sections below retain earlier review
+history; their baseline/file lists are not the current commit plan.
+
 PASSED: checkpoint bundle/source hashes; scoped uncommitted integration review;
 credential-pattern and Git whitespace checks in both repositories.
-UPDATED: Phase 7 shipment design approved and backend implemented. Current validation:
-96 affected Logistics tests / 581 assertions PASS, including 17 finance tests;
-28 scoped PHP files linted; credential-pattern/whitespace checks passed. Earlier
-review evidence below is historical; current API/rollout details are in ALONA
-docs/DELIVERY_FINANCE.md. No production migration or Flutter UI change occurred.
+UPDATED: Phase 7 backend and Rider earnings view integrated. Current validation:
+12 focused Flutter tests and 21 Laravel tests/166 assertions PASS; targeted analysis
+clean and current JavaScript web release compile PASS. Credential-pattern/whitespace
+checks passed. Earlier evidence below is historical. Current API/rollout details:
+PHASE10_READINESS.md and ALONA finance docs. No production migration or publication
+occurred in this final integration; existing operational UI/history are preserved.
 MANUAL TESTING: Phase 10 device, email, live API and deployment acceptance.
 
 ## Evidence and limits
@@ -120,8 +125,8 @@ Subsequent user approval defines seller-funded PHP 50 successful-delivery charge
 PHP 10 Logistics/PHP 40 Rider, no voucher reduction, no pickup fees/expenses and
 manual collection/payout. Latest approval specifies per-shipment billing, new orders
 only and removal of buyer/express fees. See ../DECISIONS.md and PHASE7_SHIPMENTS.md
-for the approved shipment design. The backend now implements it; Rider UI remains
-unchanged as requested. No extra package-design approval is outstanding.
+for the approved shipment design. The backend implements it and Rider now consumes
+its earnings API in a separate view. No extra package-design approval is outstanding.
 
 ## Manual acceptance still required
 

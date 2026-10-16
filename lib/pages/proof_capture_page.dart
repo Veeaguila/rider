@@ -1,6 +1,11 @@
-import "dart:typed_data";
+import "dart:ui" as ui;
 
+import "package:flutter/foundation.dart";
 import "package:flutter/material.dart";
+
+import '../widgets/rider_content.dart';
+
+import "package:flutter/services.dart";
 import "package:image_picker/image_picker.dart";
 import "package:http/http.dart" as http;
 
@@ -12,6 +17,8 @@ import "../services/rider_session_guard.dart";
 class ProofCapturePage extends StatefulWidget {
   final RiderSession? session;
   final Future<XFile?> Function()? capturePhoto;
+  final Future<XFile?> Function()? choosePhoto;
+  final bool openCameraOnStart;
   final int parcelId;
   final String deliveryAddress;
 
@@ -19,6 +26,8 @@ class ProofCapturePage extends StatefulWidget {
     super.key,
     this.session,
     this.capturePhoto,
+    this.choosePhoto,
+    this.openCameraOnStart = false,
     required this.parcelId,
     required this.deliveryAddress,
   });
@@ -34,9 +43,27 @@ class _ProofCapturePageState extends State<ProofCapturePage>
   final ImagePicker _imagePicker = ImagePicker();
   XFile? _capturedImage;
   Uint8List? _capturedBytes;
-  String _proofType = "PHOTO";
   final TextEditingController _notesController = TextEditingController();
   bool _isUploading = false;
+  bool _isCapturing = false;
+  String? _error;
+  bool get _nativeCamera =>
+      !kIsWeb &&
+      [
+        TargetPlatform.android,
+        TargetPlatform.iOS,
+      ].contains(defaultTargetPlatform);
+  bool get _busy => _isCapturing || _isUploading;
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.openCameraOnStart && _nativeCamera) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _capturePhoto();
+      });
+    }
+  }
 
   @override
   void dispose() {
@@ -44,19 +71,60 @@ class _ProofCapturePageState extends State<ProofCapturePage>
     super.dispose();
   }
 
-  Future<void> _capturePhoto() async {
+  Future<void> _capturePhoto({bool fromGallery = false}) async {
+    if (_busy) return;
+    setState(() {
+      _isCapturing = true;
+      _error = null;
+    });
     try {
-      await readyToken();
-      final XFile? photo = widget.capturePhoto != null
-          ? await widget.capturePhoto!()
+      // Browser file selection must start in the user's click, before network awaits.
+      // Selection never mutates a parcel; readiness is checked before using/uploading it.
+      if (!fromGallery) await readyToken();
+      final injected = fromGallery ? widget.choosePhoto : widget.capturePhoto;
+      final XFile? photo = injected != null
+          ? await injected()
           : await _imagePicker.pickImage(
-              source: ImageSource.camera,
+              source: fromGallery ? ImageSource.gallery : ImageSource.camera,
               maxWidth: 1200,
               maxHeight: 1200,
               imageQuality: 85,
             );
       if (photo != null) {
+        if (fromGallery) await readyToken();
+        if (await photo.length() > 20 * 1024 * 1024) {
+          throw const SessionFailure("Proof must be at most 20 MB.");
+        }
         final bytes = await photo.readAsBytes();
+        if (bytes.isEmpty) {
+          throw const SessionFailure("The photo is empty. Take another photo.");
+        }
+        final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
+        try {
+          final descriptor = await ui.ImageDescriptor.encoded(buffer);
+          try {
+            if (descriptor.width > 6000 || descriptor.height > 6000) {
+              throw const SessionFailure(
+                "Proof images must be no larger than 6000 × 6000 pixels.",
+              );
+            }
+          } finally {
+            descriptor.dispose();
+          }
+        } finally {
+          buffer.dispose();
+        }
+        final codec = await ui.instantiateImageCodec(
+          bytes,
+          targetWidth: 1200,
+          allowUpscaling: false,
+        );
+        try {
+          final frame = await codec.getNextFrame();
+          frame.image.dispose();
+        } finally {
+          codec.dispose();
+        }
         if (bytes.length > 20 * 1024 * 1024) {
           throw const SessionFailure("Proof must be at most 20 MB.");
         }
@@ -64,23 +132,36 @@ class _ProofCapturePageState extends State<ProofCapturePage>
         setState(() {
           _capturedImage = photo;
           _capturedBytes = bytes;
-          _proofType = "PHOTO";
         });
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            e is SessionFailure ? e.message : "Could not capture a photo. Check camera permission and retry.",
-          ),
-        ),
+      setState(
+        () => _error = switch (e) {
+          SessionFailure() => e.message,
+          PlatformException(
+            code: 'camera_access_denied' ||
+                'camera_access_denied_without_prompt' ||
+                'camera_access_restricted',
+          ) =>
+            'Camera access is blocked. Allow camera access in your device settings, then try again.',
+          PlatformException(
+            code: 'photo_access_denied' ||
+                'photo_access_denied_without_prompt' ||
+                'photo_access_restricted',
+          ) =>
+            'Photo access is blocked. Allow photo access in your device settings, then try again.',
+          MissingPluginException() || UnsupportedError() => 'Camera capture is unavailable on this device. Use the Android or iOS Rider app, or select a real proof photo.',
+          _ => 'Could not read a valid photo. Take another photo and retry.',
+        },
       );
+    } finally {
+      if (mounted) setState(() => _isCapturing = false);
     }
   }
 
   Future<void> _uploadProof() async {
-    if (_isUploading) return;
+    if (_busy) return;
     if (_capturedImage == null || _capturedBytes == null) {
       ScaffoldMessenger.of(
         context,
@@ -98,7 +179,10 @@ class _ProofCapturePageState extends State<ProofCapturePage>
       );
       return;
     }
-    setState(() => _isUploading = true);
+    setState(() {
+      _isUploading = true;
+      _error = null;
+    });
     try {
       final token = await readyToken();
       final request =
@@ -108,7 +192,7 @@ class _ProofCapturePageState extends State<ProofCapturePage>
             )
             ..headers['Authorization'] = 'Bearer $token'
             ..headers['Accept'] = 'application/json'
-            ..fields['type'] = _proofType
+            ..fields['type'] = 'PHOTO'
             ..fields['notes'] = _notesController.text
             ..files.add(
               http.MultipartFile.fromBytes(
@@ -123,17 +207,16 @@ class _ProofCapturePageState extends State<ProofCapturePage>
         throw SessionFailure(apiErrorMessage(response));
       }
       if (!mounted) return;
+      setState(() => _isUploading = false);
       ScaffoldMessenger.of(context)
           .showSnackBar(const SnackBar(content: Text('Proof uploaded!')));
       Navigator.of(context).pop(true);
     } catch (failure) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              failure is SessionFailure ? failure.message : 'Proof upload could not be confirmed. Refresh before retrying.',
-            ),
-          ),
+        setState(
+          () => _error = failure is SessionFailure
+              ? failure.message
+              : 'Proof upload could not be confirmed. Refresh before retrying.',
         );
       }
     } finally {
@@ -150,7 +233,7 @@ class _ProofCapturePageState extends State<ProofCapturePage>
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: riderPagePadding(context, maxWidth: 640),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -175,43 +258,20 @@ class _ProofCapturePageState extends State<ProofCapturePage>
               ),
               const SizedBox(height: 20),
               const Text(
-                "Proof Type",
+                "Delivery photo",
                 style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
               ),
-              RadioGroup<String>(
-                groupValue: _proofType,
-                onChanged: (value) {
-                  if (value != null) setState(() => _proofType = value);
-                },
-                child: Row(
-                  children: const [
-                    Expanded(
-                      child: RadioListTile<String>(
-                        title: Text('Photo'),
-                        value: 'PHOTO',
-                      ),
-                    ),
-                    Expanded(
-                      child: RadioListTile<String>(
-                        title: Text('Signature'),
-                        value: 'SIGNATURE',
-                      ),
-                    ),
-                  ],
-                ),
+              const Text(
+                'Capture a clear photo of this delivery. A signature alone cannot confirm delivery.',
               ),
               const SizedBox(height: 20),
-              const Text(
-                "Proof Image",
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              const SizedBox(height: 12),
               _capturedImage != null
                   ? Image.memory(
                       _capturedBytes!,
                       height: 300,
                       width: double.infinity,
                       fit: BoxFit.cover,
+                      cacheWidth: 1200,
                     )
                   : Container(
                       height: 200,
@@ -227,12 +287,44 @@ class _ProofCapturePageState extends State<ProofCapturePage>
                       ),
                     ),
               const SizedBox(height: 12),
+              if (!_nativeCamera) ...[
+                const Text(
+                  'Live camera capture is available in the Android and iOS Rider app. Here, select a real photo to submit as proof.',
+                ),
+                const SizedBox(height: 12),
+              ],
+              if (_error != null) ...[
+                Text(_error!, style: const TextStyle(color: Color(0xff9b3125))),
+                const SizedBox(height: 12),
+              ],
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton.icon(
-                  onPressed: _isUploading ? null : _capturePhoto,
-                  icon: const Icon(Icons.camera_alt),
-                  label: const Text("Capture Photo"),
+                  onPressed: _busy
+                      ? null
+                      : () => _capturePhoto(fromGallery: !_nativeCamera),
+                  icon: _isCapturing
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          _nativeCamera
+                              ? Icons.camera_alt
+                              : Icons.photo_library_outlined,
+                        ),
+                  label: Text(
+                    _isCapturing
+                        ? 'Opening photo…'
+                        : _nativeCamera
+                        ? (_capturedImage == null
+                              ? 'Capture Photo'
+                              : 'Retake Photo')
+                        : (_capturedImage == null
+                              ? 'Choose proof photo'
+                              : 'Choose another photo'),
+                  ),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1f3a70),
                     padding: const EdgeInsets.symmetric(vertical: 12),
@@ -260,7 +352,9 @@ class _ProofCapturePageState extends State<ProofCapturePage>
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _isUploading ? null : _uploadProof,
+                  onPressed: _busy || _capturedBytes == null
+                      ? null
+                      : _uploadProof,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.green,
                     padding: const EdgeInsets.symmetric(vertical: 14),
@@ -276,7 +370,7 @@ class _ProofCapturePageState extends State<ProofCapturePage>
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: _isUploading ? null : () => Navigator.pop(context),
+                  onPressed: _busy ? null : () => Navigator.pop(context),
                   child: const Text("Cancel"),
                 ),
               ),

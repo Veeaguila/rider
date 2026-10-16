@@ -2,7 +2,7 @@
 
 ## 2026-10-15 — Seller-funded delivery earnings
 
-**Business policy and shipment design: approved. Backend implemented; deployment pending.**
+**Business policy and shipment design: approved. Backend and Rider API view implemented; deployment pending.**
 
 Seller funds PHP 50 per successful seller package/shipment, never per individual
 parcel: Logistics 20% (PHP 10), Rider 80%
@@ -31,3 +31,20 @@ Lock parent order before shipment/member/parcel rows so package finance and shar
 order aggregation serialize consistently. Read members/proofs with locking queries
 to avoid stale MySQL REPEATABLE READ snapshots after waiting on sibling completion.
 Deployment-engine contention testing remains pending; see ALONA docs/DELIVERY_FINANCE.md.
+
+Rider displays ALONA total/paid/outstanding decimal strings and earning rows through
+the authenticated earnings API. No client fee/percentage/total computation or paid
+action. A separate earnings page reuses existing UI patterns and preserves Delivery
+History. This final integration is local; no automatic commit or push is authorized.
+
+## Parcel workflow follow-up (2026-10-16)
+
+User approved mobile_scanner 7.4.2, pinned exactly. Decode existing ITEM references;
+owned API lookup authorizes before navigation. Native Android/iOS scanning only;
+manual reference entry remains available on other targets.
+
+New completion attempts require assigned-rider PHOTO plus readable validated private
+image, followed by explicit client confirmation. Historical completed rows remain
+unchanged. Reuse existing proof, parcel/item and SellerNotification tables; commit
+Seller delivery notice atomically and expose only owner-checked private photos.
+Unverified legacy Seller links are omitted rather than guessed. Finance unchanged.

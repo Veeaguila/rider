@@ -2,12 +2,12 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../widgets/rider_content.dart';
+
 import '../services/api_error.dart';
 
-import 'package:url_launcher/url_launcher.dart';
-
 import '../services/api_config.dart';
-import '../services/parcel_address.dart';
+import '../widgets/address_details.dart';
 import '../services/rider_session.dart';
 import '../services/rider_session_guard.dart';
 import 'delivery_dashboard_page.dart';
@@ -27,6 +27,7 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
   @override
   late final riderSession = widget.session ?? RiderSession();
   bool loggingOut = false;
+  final scroll = ScrollController();
   int? actionParcelId;
   int refreshRevision = 0;
   List<Map<String, dynamic>> available = [];
@@ -44,6 +45,7 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
 
   @override
   void dispose() {
+    scroll.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -164,40 +166,17 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
           ? failure.message
           : 'Could not confirm this pickup action. Refresh before retrying.';
       if (failure is! SessionFailure || !failure.accessDenied) await refresh();
-      if (mounted) setState(() => error = message);
+      if (mounted) {
+        if (scroll.hasClients) scroll.jumpTo(0);
+        setState(() => error = message);
+      }
     } finally {
       if (mounted) setState(() => actionParcelId = null);
     }
   }
 
-  Future<void> openMaps(Map<String, dynamic> pickup) async {
-    final location = address(pickup);
-    if (location.isEmpty) {
-      setState(
-        () => error =
-            'The pickup address is unavailable. Contact the sorting center.',
-      );
-      return;
-    }
-    final uri = Uri.https('maps.google.com', '/', {'q': location});
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication) &&
-        mounted) {
-      setState(() => error = 'Could not open the address in Maps.');
-    }
-  }
-
   Future<void> confirmPickup(Map<String, dynamic> pickup) =>
       pickupAction(pickup, 'confirm');
-
-  String sellerName(Map<String, dynamic> pickup) {
-    final requests = pickup['pickup_requests'] as List<dynamic>? ?? [];
-    final seller = requests.isNotEmpty
-        ? requests.first['seller'] as Map<String, dynamic>?
-        : null;
-    return seller?['name']?.toString() ?? 'Seller';
-  }
-
-  String address(Map<String, dynamic> pickup) => pickupAddress(pickup);
 
   Widget pickupCard(Map<String, dynamic> pickup, {required bool isMine}) {
     return Container(
@@ -206,7 +185,6 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xffdce7e2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -216,12 +194,7 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
-          Text('Seller: ${sellerName(pickup)}'),
-          const SizedBox(height: 4),
-          Text(
-            'Pickup address: ${address(pickup).isEmpty ? 'Unavailable' : address(pickup)}',
-            style: TextStyle(color: Colors.grey.shade700),
-          ),
+          AddressDetails(parcel: pickup, pickup: true),
           if (!isMine) ...[
             const SizedBox(height: 12),
             SizedBox(
@@ -236,14 +209,6 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
             const SizedBox(height: 10),
             Row(
               children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => openMaps(pickup),
-                    icon: const Icon(Icons.map_outlined),
-                    label: const Text('Open in Maps'),
-                  ),
-                ),
-                const SizedBox(width: 10),
                 Expanded(
                   child: FilledButton.icon(
                     onPressed: actionParcelId != null
@@ -291,20 +256,11 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            Image.asset(
-              'assets/images/alona/alonalogo1.png',
-              height: 36,
-              width: 36,
-            ),
-            const SizedBox(width: 10),
-            const Text('Pickups'),
-          ],
-        ),
+        title: const Text('Pickups'),
         actions: [
           riderTools(context, riderSession),
-          TextButton(
+          IconButton(
+            tooltip: 'Deliveries',
             onPressed: () => Navigator.of(context)
                 .push(
                   MaterialPageRoute(
@@ -315,7 +271,7 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
                 .then((_) {
                   if (mounted) refresh();
                 }),
-            child: const Text('Deliveries'),
+            icon: const Icon(Icons.local_shipping_outlined),
           ),
           IconButton(
             onPressed: loading ? null : refresh,
@@ -332,7 +288,8 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
       body: RefreshIndicator(
         onRefresh: refresh,
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          controller: scroll,
+          padding: riderPagePadding(context),
           children: [
             Container(
               padding: const EdgeInsets.all(20),
@@ -368,11 +325,6 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
                   ),
                 ],
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Accept a confirmed seller pickup. Completion starts in Screen 4.',
-              style: TextStyle(color: Colors.grey.shade700),
             ),
             if (error != null) ...[
               const SizedBox(height: 16),

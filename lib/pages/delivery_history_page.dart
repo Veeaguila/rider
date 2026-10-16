@@ -2,11 +2,14 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
+import '../widgets/rider_content.dart';
+
 import '../services/api_config.dart';
 import '../services/api_error.dart';
 import '../services/parcel_address.dart';
 import '../services/rider_session.dart';
 import '../services/rider_session_guard.dart';
+import 'profit_dashboard_page.dart';
 
 class DeliveryHistoryPage extends StatefulWidget {
   final RiderSession? session;
@@ -99,7 +102,7 @@ class _DeliveryHistoryPageState extends State<DeliveryHistoryPage>
       ],
     ),
     body: ListView(
-      padding: const EdgeInsets.all(20),
+      padding: riderPagePadding(context),
       children: [
         Card(
           child: Padding(
@@ -109,10 +112,16 @@ class _DeliveryHistoryPageState extends State<DeliveryHistoryPage>
             ),
           ),
         ),
-        const Padding(
+        Padding(
           padding: EdgeInsets.symmetric(vertical: 12),
-          child: Text(
-            'Earnings are not available yet. Contact your sorting center for payout information.',
+          child: TextButton(
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => ProfitDashboardPage(session: riderSession),
+              ),
+            ),
+            child: const Text('View earnings'),
           ),
         ),
         if (loading) const Center(child: CircularProgressIndicator()),
@@ -130,8 +139,11 @@ class _DeliveryHistoryPageState extends State<DeliveryHistoryPage>
               isThreeLine: true,
             ),
           ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 12,
+          runSpacing: 8,
           children: [
             TextButton(
               onPressed: loading || page <= 1

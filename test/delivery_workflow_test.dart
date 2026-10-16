@@ -14,7 +14,10 @@ void main() {
   testWidgets(
     'start and complete use assigned parcel ID and server proof state',
     (tester) async {
-      tester.view.physicalSize = const Size(1000,1600); tester.view.devicePixelRatio=1; addTearDown(tester.view.resetPhysicalSize); addTearDown(tester.view.resetDevicePixelRatio);
+      tester.view.physicalSize = const Size(1000, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
       var status = 'AT_SORTING_CENTER', complete = false;
       final calls = <String>[];
       final session = RiderSession(
@@ -35,6 +38,7 @@ void main() {
                     'status': status,
                     'delivery_address': 'Order shipping address',
                     'has_delivery_proof': true,
+                    'has_valid_photo_proof': true,
                   },
                 ],
               }),
@@ -69,7 +73,10 @@ void main() {
       await tester.ensureVisible(find.text('Mark Delivered'));
       await tester.tap(find.text('Mark Delivered'));
       await tester.pumpAndSettle();
-      await tester.pump(const Duration(seconds:3));
+      expect(complete, false);
+      await tester.tap(find.text('Confirm delivery'));
+      await tester.pumpAndSettle();
+      await tester.pump(const Duration(seconds: 3));
       expect(complete, true);
       expect(
         calls,
@@ -81,9 +88,12 @@ void main() {
     },
   );
   testWidgets(
-    'missing proof disables completion and failure sends the collected reason',
+    'missing photo opens capture and cancellation preserves failure action',
     (tester) async {
-      tester.view.physicalSize = const Size(1000,1600); tester.view.devicePixelRatio=1; addTearDown(tester.view.resetPhysicalSize); addTearDown(tester.view.resetDevicePixelRatio);
+      tester.view.physicalSize = const Size(1000, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
       String? reason;
       final session = RiderSession(
         tokens: MemoryTokens(),
@@ -106,13 +116,24 @@ void main() {
         }),
       );
       await tester.pumpWidget(
-        MaterialApp(home: DeliveryDashboardPage(session: session)),
+        MaterialApp(
+          home: DeliveryDashboardPage(
+            session: session,
+            capturePhoto: () async => null,
+          ),
+        ),
       );
       await tester.pumpAndSettle();
       final delivered = tester.widget<FilledButton>(
         find.widgetWithText(FilledButton, 'Mark Delivered'),
       );
-      expect(delivered.onPressed, isNull);
+      expect(delivered.onPressed, isNotNull);
+      await tester.ensureVisible(find.text('Mark Delivered'));
+      await tester.tap(find.text('Mark Delivered'));
+      await tester.pumpAndSettle();
+      expect(find.text('Capture Delivery Proof'), findsOneWidget);
+      await tester.pageBack();
+      await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Mark Failed'));
       await tester.tap(find.text('Mark Failed'));
       await tester.pumpAndSettle();
@@ -120,7 +141,7 @@ void main() {
       await tester.pump();
       await tester.tap(find.text('Confirm Failed'));
       await tester.pumpAndSettle();
-      await tester.pump(const Duration(seconds:3));
+      await tester.pump(const Duration(seconds: 3));
       expect(reason, 'Recipient unavailable');
     },
   );

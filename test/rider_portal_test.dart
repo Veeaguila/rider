@@ -94,7 +94,12 @@ void main() {
       final session = RiderSession(
         tokens: MemoryTokens(),
         client: MockClient((request) async {
-          expect(request.url.path, '/api/partner/profile');
+          expect(
+            request.url.path,
+            request.method == 'PATCH'
+                ? '/api/rider/profile'
+                : '/api/partner/profile',
+          );
           if (request.method == 'PATCH') {
             contact = jsonDecode(request.body)['contact_no'];
             return http.Response('{"message":"Profile updated."}', 200);
@@ -120,32 +125,58 @@ void main() {
         MaterialApp(home: RiderAccountPage(session: session)),
       );
       await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.textContaining('Approval: pending'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.textContaining('Approval: pending'), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.byType(TextField),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
       await tester.enterText(find.byType(TextField), '09123456789');
       await tester.ensureVisible(find.text('Save contact number'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Save contact number'));
       await tester.pumpAndSettle();
       expect(contact, '09123456789');
       expect(find.text('Contact number updated.'), findsOneWidget);
     },
   );
-  testWidgets('notifications reflect real unread counts and assigned tasks', (
+  testWidgets('notifications use stored events and backend unread count', (
     tester,
   ) async {
     final session = RiderSession(
       tokens: MemoryTokens(),
       client: MockClient((request) async {
-        if (request.url.path.endsWith('/partner/profile')) {
-          return http.Response(jsonEncode({'data': readyProfile()}), 200);
-        }
-        if (request.url.path.endsWith('/conversations')) {
-          return http.Response(
-            '{"data":[{"id":1,"recipient":{"name":"Center"},"unread_count":2},{"id":2,"unread_count":0}]}',
-            200,
-          );
-        }
+        expect(request.url.path, '/api/rider/notifications');
         return http.Response(
-          '{"data":[{"id":52,"order_id":"ITEM-7","status":"OUT_FOR_DELIVERY"}]}',
+          jsonEncode({
+            'data': [
+              {
+                'id': 'one',
+                'title': 'Pickup accepted',
+                'body': 'Open pickups',
+                'created_at': '2026-10-16T01:00:00Z',
+                'read_at': null,
+                'data': {'screen': 'pickups'},
+              },
+              {
+                'id': 'two',
+                'title': 'Payout recorded',
+                'body': 'PHP 40.00 marked paid.',
+                'created_at': '2026-10-16T00:00:00Z',
+                'read_at': '2026-10-16T01:00:00Z',
+                'data': {'screen': 'earnings'},
+              },
+            ],
+            'unread_count': 1,
+            'current_page': 1,
+            'last_page': 1,
+          }),
           200,
         );
       }),
@@ -154,9 +185,12 @@ void main() {
       MaterialApp(home: RiderNotificationsPage(session: session)),
     );
     await tester.pumpAndSettle();
-    expect(find.text('2 unread messages'), findsOneWidget);
-    expect(find.text('0 unread messages'), findsNothing);
-    expect(find.text('Order ITEM-7'), findsOneWidget);
+    expect(find.text('1 unread notifications'), findsOneWidget);
+    expect(find.text('Pickup accepted'), findsOneWidget);
+    expect(find.text('Payout recorded'), findsOneWidget);
+    expect(find.textContaining('Unread'), findsOneWidget);
+    expect(find.textContaining('2026-10-16'), findsNWidgets(2));
+    await tester.pumpWidget(const SizedBox());
   });
   test(
     'expired account token is cleared and server internals are suppressed',

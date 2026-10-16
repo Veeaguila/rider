@@ -45,7 +45,7 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('Order ITEM-1'), findsOneWidget);
-      expect(find.textContaining('Earnings are not available'), findsOneWidget);
+      expect(find.text('View earnings'), findsOneWidget);
       await tester.ensureVisible(find.text('Next'));
       await tester.tap(find.text('Next'));
       await tester.pumpAndSettle();

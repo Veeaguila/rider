@@ -380,6 +380,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
     return TextFormField(
       controller: controller,
       keyboardType: type,
+      textInputAction: TextInputAction.next,
       obscureText: obscure && !showPasswords,
       validator: validator ?? requiredValue,
       decoration: InputDecoration(
@@ -405,6 +406,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
   ) {
     return DropdownButtonFormField<String>(
       initialValue: value,
+      isExpanded: true,
       items: items
           .map((item) => DropdownMenuItem(value: item, child: Text(item)))
           .toList(),
@@ -419,8 +421,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xffd7e2e2)),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -466,43 +467,43 @@ class _RegistrationPageState extends State<RegistrationPage> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 760),
+              constraints: const BoxConstraints(maxWidth: 720),
               child: Form(
                 key: formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Center(
-                      child: Image.asset(
-                        'assets/images/alona/alonalogo2.png',
-                        height: 60,
-                        fit: BoxFit.contain,
-                      ),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Flexible(
+                          child: Image.asset(
+                            'assets/images/alona/alonalogo2.png',
+                            height: 44,
+                            fit: BoxFit.contain,
+                          ),
+                        ),
+                        Flexible(
+                          child: TextButton(
+                            onPressed: () => Navigator.of(context).pop(),
+                            child: const Text(
+                              'Back to sign in',
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 20),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        child: const Text('Back to sign in'),
-                      ),
-                    ),
-                    const Text(
-                      'RIDER / 01',
-                      style: TextStyle(
-                        letterSpacing: 2,
-                        color: Color(0xff008b8b),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 28),
                     const Text(
                       'Create your rider profile',
                       style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w800,
+                        fontSize: 30,
+                        height: 1.2,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -575,11 +576,15 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             'center-$sortingCenterId-${sortingCenters.length}',
                           ),
                           initialValue: sortingCenterId,
+                          isExpanded: true,
                           items: sortingCenters.map((center) {
                             final id = (center['id'] as num).toInt();
                             return DropdownMenuItem<int>(
                               value: id,
-                              child: Text(center['business_name'].toString()),
+                              child: Text(
+                                center['business_name'].toString(),
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             );
                           }).toList(),
                           onChanged: submitting
@@ -682,7 +687,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                       ),
                     ]),
                     const SizedBox(height: 16),
-                    section('Contact and address', [
+                    section('Account details', [
                       field(
                         email,
                         'Email',
@@ -710,7 +715,9 @@ class _RegistrationPageState extends State<RegistrationPage> {
                             ? 'Passwords do not match'
                             : null,
                       ),
-                      const SizedBox(height: 12),
+                    ]),
+                    const SizedBox(height: 16),
+                    section('Contact and address', [
                       field(
                         contact,
                         'Contact number',
@@ -726,7 +733,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                       const SizedBox(height: 12),
                       if (provinces.isNotEmpty)
                         codeDropdown(
-                          'Province (city determines province)',
+                          'Province',
                           province,
                           [
                             {

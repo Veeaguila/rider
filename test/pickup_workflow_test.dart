@@ -65,6 +65,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('Accept pickup'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Accept pickup'));
     await tester.pumpAndSettle();
     expect(accepted, true);
@@ -72,6 +73,7 @@ void main() {
     expect(find.textContaining('Buyer destination'), findsNothing);
     final confirm = find.text('Confirm Pickup');
     await tester.ensureVisible(confirm);
+    await tester.pumpAndSettle();
     await tester.tap(confirm);
     await tester.pumpAndSettle();
     expect(confirmed, true);
@@ -113,6 +115,7 @@ void main() {
       await tester.pumpAndSettle();
       final button = find.text('Accept pickup');
       await tester.ensureVisible(button);
+      await tester.pumpAndSettle();
       await tester.tap(button);
       await tester.pump();
       await tester.tap(button);

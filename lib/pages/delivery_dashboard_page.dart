@@ -2,23 +2,35 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 
-import '../services/api_error.dart';
+import '../widgets/rider_content.dart';
 
-import 'package:url_launcher/url_launcher.dart';
+import 'package:image_picker/image_picker.dart';
+
+import '../services/api_error.dart';
 
 import '../services/api_config.dart';
 import '../services/parcel_address.dart';
 import '../services/rider_session.dart';
 import '../services/rider_session_guard.dart';
 import '../widgets/failure_reason_dialog.dart';
+import '../widgets/address_details.dart';
 import 'login_page.dart';
 import 'rider_portal_page.dart';
 import 'proof_capture_page.dart';
 import 'delivery_history_page.dart';
+import 'parcel_scanner_page.dart';
+import 'delivery_success_page.dart';
 
 class DeliveryDashboardPage extends StatefulWidget {
   final RiderSession? session;
-  const DeliveryDashboardPage({super.key, this.session});
+  final int? parcelId;
+  final Future<XFile?> Function()? capturePhoto;
+  const DeliveryDashboardPage({
+    super.key,
+    this.session,
+    this.parcelId,
+    this.capturePhoto,
+  });
 
   @override
   State<DeliveryDashboardPage> createState() => _DeliveryDashboardPageState();
@@ -34,6 +46,9 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
   String? error;
   String? success;
   int? actionParcelId;
+  bool proofFlow = false;
+  int refreshRevision = 0;
+  final scroll = ScrollController();
 
   @override
   void initState() {
@@ -44,17 +59,21 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
 
   @override
   void dispose() {
+    scroll.dispose();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed && !loggingOut) refresh();
+    if (state == AppLifecycleState.resumed && !loggingOut && !proofFlow) {
+      refresh();
+    }
   }
 
   Future<void> refresh() async {
     if (loggingOut) return;
+    final revision = ++refreshRevision;
     setState(() {
       loading = true;
       deliveries = [];
@@ -74,15 +93,22 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
       if (response.statusCode != 200) {
         throw SessionFailure(apiErrorMessage(response));
       }
-      if (!mounted) return;
+      if (!mounted || revision != refreshRevision) return;
       setState(() {
-        deliveries = List<Map<String, dynamic>>.from(
-          jsonDecode(response.body)['data'] as List,
-        );
+        deliveries =
+            List<Map<String, dynamic>>.from(
+                  jsonDecode(response.body)['data'] as List,
+                )
+                .where(
+                  (parcel) =>
+                      widget.parcelId == null ||
+                      parcel['id'] == widget.parcelId,
+                )
+                .toList();
         loading = false;
       });
     } catch (exception) {
-      if (!mounted) return;
+      if (!mounted || revision != refreshRevision) return;
       setState(() {
         loading = false;
         error = exception is SessionFailure ? exception.message : 'Could not confirm this delivery request. Refresh before retrying.';
@@ -91,7 +117,7 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
   }
 
   Future<void> logout() async {
-    if (loggingOut) return;
+    if (loggingOut || proofFlow || actionParcelId != null) return;
     setState(() => loggingOut = true);
     try {
       await riderSession.logout();
@@ -114,35 +140,81 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
 
   String address(Map<String, dynamic> delivery) => deliveryAddress(delivery);
 
-  Future<void> openMaps(Map<String, dynamic> delivery) async {
-    final location = address(delivery);
-    if (location.isEmpty) {
-      setState(
-        () => error =
-            'The delivery address is unavailable. Contact the sorting center.',
+  Future<void> markDelivered(Map<String, dynamic> delivery) async {
+    if (loggingOut || proofFlow || actionParcelId != null) return;
+    setState(() => proofFlow = true);
+    try {
+      var current = delivery;
+      if (current['has_valid_photo_proof'] != true) {
+        final uploaded = await openProof(current);
+        if (!mounted || uploaded != true) return;
+        await refresh();
+        if (!mounted || error != null) return;
+        final updated = deliveries
+            .where((row) => row['id'] == delivery['id'])
+            .firstOrNull;
+        if (updated == null || updated['has_valid_photo_proof'] != true) {
+          setState(
+            () => error = 'Your photo could not be verified for this active delivery. Refresh and retry.',
+          );
+          return;
+        }
+        current = updated;
+      }
+      if (!mounted) return;
+      final confirmed = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Confirm successful delivery'),
+          content: Text(
+            'Confirm that ${current['order_id']} was successfully delivered to the recipient. Your photo proof will be attached.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Confirm delivery'),
+            ),
+          ],
+        ),
       );
-      return;
-    }
-    final uri = Uri.https('maps.google.com', '/', {'q': location});
-    if (!await launchUrl(uri, mode: LaunchMode.externalApplication) &&
-        mounted) {
-      setState(() => error = 'Could not open the delivery address in Maps.');
+      if (confirmed != true || !mounted) return;
+      if (await updateDelivery(current, 'deliver') && mounted) {
+        await Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => DeliverySuccessPage(
+              reference: current['order_id'].toString(),
+              returnToScanner: widget.parcelId != null,
+            ),
+          ),
+        );
+        if (mounted && widget.parcelId != null) Navigator.pop(context, true);
+      }
+    } finally {
+      if (mounted) setState(() => proofFlow = false);
     }
   }
 
-  Future<void> markDelivered(Map<String, dynamic> delivery) async {
-    if (delivery['has_delivery_proof'] != true) {
-      setState(
-        () => error =
-            'Upload delivery proof before marking this parcel as delivered.',
+  Future<bool?> openProof(Map<String, dynamic> delivery) =>
+      Navigator.push<bool>(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ProofCapturePage(
+            openCameraOnStart: true,
+            capturePhoto: widget.capturePhoto,
+            parcelId: delivery['id'],
+            session: riderSession,
+            deliveryAddress: address(delivery),
+          ),
+        ),
       );
-      return;
-    }
-    await updateDelivery(delivery, 'deliver');
-  }
 
   Future<void> startDelivery(Map<String, dynamic> delivery) async {
-    if (loggingOut || actionParcelId != null) return;
+    if (loggingOut || actionParcelId != null || proofFlow) return;
     setState(() {
       actionParcelId = delivery['id'] as int;
       error = null;
@@ -183,6 +255,7 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
   }
 
   Future<void> markFailed(Map<String, dynamic> delivery) async {
+    if (loggingOut || proofFlow || actionParcelId != null) return;
     final reason = await showFailureReasonDialog();
     if (reason == null || reason.trim().isEmpty) {
       return;
@@ -190,12 +263,12 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
     await updateDelivery(delivery, 'fail', body: {'reason': reason.trim()});
   }
 
-  Future<void> updateDelivery(
+  Future<bool> updateDelivery(
     Map<String, dynamic> delivery,
     String action, {
     Map<String, String>? body,
   }) async {
-    if (loggingOut || actionParcelId != null) return;
+    if (loggingOut || actionParcelId != null) return false;
     setState(() {
       actionParcelId = delivery['id'] as int;
       error = null;
@@ -214,6 +287,15 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
       );
       await checkAuthorization(response.statusCode);
       if (response.statusCode != 200) {
+        if (response.statusCode == 422) {
+          try {
+            if (jsonDecode(response.body)['code'] == 'valid_photo_required') {
+              delivery['has_valid_photo_proof'] = false;
+            }
+          } catch (_) {
+            /* Only trust the known backend code. */
+          }
+        }
         throw SessionFailure(apiErrorMessage(response));
       }
       final payload = jsonDecode(response.body) as Map<String, dynamic>;
@@ -222,7 +304,7 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
           payload['message']?.toString() ?? 'Could not update this delivery.',
         );
       }
-      if (!mounted) return;
+      if (!mounted) return false;
       setState(() {
         deliveries.removeWhere((item) => item['id'] == delivery['id']);
         success =
@@ -234,17 +316,15 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
           setState(() => success = null);
         }
       });
+      return true;
     } catch (exception) {
-      if (!mounted) return;
+      if (!mounted) return false;
+      if (scroll.hasClients) scroll.jumpTo(0);
       setState(() {
         actionParcelId = null;
         error = exception is SessionFailure ? exception.message : 'Could not confirm this delivery request. Refresh before retrying.';
       });
-      Future.delayed(const Duration(seconds: 3), () {
-        if (mounted && error != null) {
-          setState(() => error = null);
-        }
-      });
+      return false;
     }
   }
 
@@ -262,23 +342,18 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xffdce7e2)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 8,
+            crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              const Icon(
-                Icons.local_shipping_outlined,
-                color: Color(0xff008b8b),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Order ${delivery['order_id']}',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
-                ),
+              Text(
+                'Order ${delivery['order_id']}',
+                style: const TextStyle(fontWeight: FontWeight.w700),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -295,7 +370,7 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
                       : 'IN TRANSIT',
                   style: TextStyle(
                     color: Color(0xff995800),
-                    fontSize: 10,
+                    fontSize: 12,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -303,42 +378,8 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            'Delivery address: ${address(delivery).isEmpty ? 'Unavailable' : address(delivery)}',
-            style: TextStyle(color: Colors.grey.shade700),
-          ),
+          AddressDetails(parcel: delivery),
           const SizedBox(height: 12),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.symmetric(vertical: 22),
-            decoration: BoxDecoration(
-              color: const Color(0xffeaf4f4),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xffb8dada)),
-            ),
-            child: const Column(
-              children: [
-                Icon(Icons.map_outlined, size: 28, color: Color(0xff008b8b)),
-                SizedBox(height: 6),
-                Text(
-                  'Delivery location',
-                  style: TextStyle(
-                    color: Color(0xff006f6f),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            width: double.infinity,
-            child: OutlinedButton.icon(
-              onPressed: () => openMaps(delivery),
-              icon: const Icon(Icons.map_outlined),
-              label: const Text('Open in Maps'),
-            ),
-          ),
           if (delivery['status'] == 'AT_SORTING_CENTER')
             SizedBox(
               width: double.infinity,
@@ -354,20 +395,17 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ProofCapturePage(
-                        parcelId: delivery['id'],
-                        session: riderSession,
-                        deliveryAddress: address(delivery),
-                      ),
-                    ),
-                  ).then((_) {
-                    if (mounted) refresh();
-                  });
-                },
+                onPressed: loggingOut || proofFlow || actionParcelId != null
+                    ? null
+                    : () async {
+                        setState(() => proofFlow = true);
+                        try {
+                          await openProof(delivery);
+                          if (mounted) await refresh();
+                        } finally {
+                          if (mounted) setState(() => proofFlow = false);
+                        }
+                      },
                 icon: const Icon(Icons.camera_alt_outlined),
                 label: const Text('Capture Proof'),
                 style: FilledButton.styleFrom(
@@ -376,31 +414,26 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
               ),
             ),
             const SizedBox(height: 10),
-            Row(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed:
-                        actionParcelId != null ||
-                            delivery['has_delivery_proof'] != true
-                        ? null
-                        : () => markDelivered(delivery),
-                    icon: const Icon(Icons.check_circle_outline),
-                    label: const Text('Mark Delivered'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xff28a745),
-                    ),
+                FilledButton.icon(
+                  onPressed: actionParcelId != null || proofFlow || loggingOut
+                      ? null
+                      : () => markDelivered(delivery),
+                  icon: const Icon(Icons.check_circle_outline),
+                  label: const Text('Mark Delivered'),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xff28a745),
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: actionParcelId != null
-                        ? null
-                        : () => markFailed(delivery),
-                    icon: const Icon(Icons.report_problem_outlined),
-                    label: const Text('Mark Failed'),
-                  ),
+                const SizedBox(height: 10),
+                OutlinedButton.icon(
+                  onPressed: actionParcelId != null
+                      ? null
+                      : () => markFailed(delivery),
+                  icon: const Icon(Icons.report_problem_outlined),
+                  label: const Text('Mark Failed'),
                 ),
               ],
             ),
@@ -414,16 +447,8 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Row(
-          children: [
-            Image.asset(
-              'assets/images/alona/alonalogo1.png',
-              height: 36,
-              width: 36,
-            ),
-            const SizedBox(width: 10),
-            const Text('Deliveries'),
-          ],
+        title: Text(
+          widget.parcelId == null ? 'Deliveries' : 'Delivery details',
         ),
         actions: [
           riderTools(context, riderSession),
@@ -455,8 +480,28 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
       body: RefreshIndicator(
         onRefresh: refresh,
         child: ListView(
-          padding: const EdgeInsets.all(20),
+          controller: scroll,
+          padding: riderPagePadding(context),
           children: [
+            if (widget.parcelId == null) ...[
+              FilledButton.icon(
+                onPressed: loggingOut || actionParcelId != null
+                    ? null
+                    : () =>
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  ParcelScannerPage(session: riderSession),
+                            ),
+                          ).then((_) {
+                            if (mounted) refresh();
+                          }),
+                icon: const Icon(Icons.qr_code_scanner),
+                label: const Text('Scan parcel'),
+              ),
+              const SizedBox(height: 16),
+            ],
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -532,7 +577,9 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
               const SizedBox(height: 28),
               if (deliveries.isEmpty)
                 Text(
-                  'No deliveries assigned right now.',
+                  widget.parcelId == null
+                      ? 'No deliveries assigned right now.'
+                      : 'This parcel is no longer in your active assignments. Refresh or check Delivery History.',
                   style: TextStyle(color: Colors.grey.shade700),
                 )
               else

@@ -13,12 +13,17 @@ users/riders, center/area assignments, parcels, order-item tracking and private 
   HTTP requests directly.
 - `lib/services/api_config.dart` validates and normalizes URLs from `API_BASE_URL`.
 - `lib/services/parcel_address.dart` resolves collection/seller pickup addresses and
-  order/legacy delivery destinations; dashboards block Maps for missing locations.
+  order/legacy delivery destinations. `widgets/address_details.dart` displays the
+  additive scoped ALONA address DTO; dashboards no longer launch Maps.
 - `lib/services/token_store.dart` uses `SharedPreferences` on web and secure
   storage on other platforms.
 - `lib/widgets/failure_reason_dialog.dart` collects a delivery failure reason.
 - `lib/services/rider_session.dart` checks the ALONA profile and confirms server
   logout; `rider_session_guard.dart` redirects blocked operational sessions to login.
+- `profit_dashboard_page.dart` uses `RiderEarningsApi` through the shared authenticated
+  `RiderPortalApi`. Typed earnings responses retain backend decimal strings. The page
+  displays `total`, `outstanding`, `paid` and paginated shipment rows; it never computes
+  rates, sums or payouts. Refresh/resume revisions prevent stale response overwrites.
 - Direction: pages use scoped registration/session/portal adapters and the `http`
   package. ALONA owns authentication, membership, task state and persistence.
 
@@ -34,23 +39,35 @@ The client references these API paths relative to `API_BASE_URL`:
 
 - `GET /sorting-centers`, `POST /rider/register`, `POST /rider/login`
 - `GET /partner/profile`, `POST /logistics/logout`
+- `GET /rider/earnings?page=...` (owned backend summary and earning rows)
 - `GET /rider/pickups/available`, `GET /rider/pickups/mine`
 - `POST /rider/pickups/{id}/accept`, `POST /rider/pickups/{id}/confirm`
 - `GET /rider/deliveries`
+- `GET /rider/deliveries/lookup?reference=ITEM-...` resolves only an approved Rider's
+  active assigned parcel; the Sorting Center lookup remains separately authorized.
 - `POST /rider/deliveries/{id}/start`, `/deliver`, `/fail`, and
   `/upload-proof`
 
 These request targets match ALONA routes/api.php. Registration uses existing ALONA partner/address/coverage contracts; operations use Sanctum and approved Rider middleware. Responses
-are decoded into dynamic maps in the screens and session helper; there are
-no dedicated model classes in the client.
+are decoded into dynamic maps for operational screens/session helpers. Earnings use
+validated `RiderEarningsPage`/`RiderEarning` response classes with string money values.
 
 ## Integrations and runtime
 
 - ALONA API_BASE_URL is configurable at build/run time. Debug defaults to
   http://localhost:8000/api; release requires explicit HTTPS. Emulators/devices
   require a URL reachable from that target (see README).
-- `file_picker` handles registration documents; `image_picker` captures proof
-  photos; `url_launcher` opens map URLs.
+- `file_picker` handles registration documents; `image_picker` captures native proof
+  photos and selects actual gallery images for profile/unsupported-camera targets.
+- User-approved `mobile_scanner` 7.4.2 supplies Android/iOS QR/barcode decoding.
+  `parcel_scanner_page.dart` owns camera lifecycle, explicit rescan/duplicate guards
+  and manual reference fallback on other targets; `RiderParcelApi` validates/scopes
+  lookup. It opens the existing delivery page with a single parcel filter.
+- Mark Delivered uses additive backend `has_valid_photo_proof`, mandatory capture
+  when absent, server refresh, explicit confirmation and `DeliverySuccessPage` after
+  success only. PHOTO/private-file eligibility and upload dedupe stay in Laravel;
+  historical deliveries/financial rules are preserved. Errors keep a stale-photo
+  rejection actionable for recapture. No new real-time service or schema in this batch.
 - Flutter platform projects exist for Android, iOS, web, Windows, macOS, and
   Linux. README run instructions cover local development API connectivity.
 
@@ -75,10 +92,19 @@ Verified remaining integration surfaces (2026-10-15):
 - Existing GET /rider/deliveries accepts view=history with bounded pagination and
   owned status counts; default active-list behavior is preserved. Phase 7 earnings
   are calculated by ALONA's shipment finance service and exposed through owned
-  GET /rider/earnings. Flutter UI/history remain unchanged by that backend addition.
-- RiderPortalApi / rider_portal_page.dart use existing scoped Logistics chat, own
-  partner profile/contact updates, unread conversation counts and active tasks.
-  Notifications are in-app; no device push provider is configured.
+  GET /rider/earnings. Existing Rider tools and a history link open the earnings view;
+  delivery-history endpoints/pagination and operational layouts remain unchanged.
+- RiderPortalApi / rider_portal_page.dart retain scoped Logistics chat and tools.
+  rider_notifications_page.dart uses persisted owned GET /rider/notifications and
+  POST /rider/notifications/{id}/read; foreground/current-screen polling every 30s,
+  resume/return refresh, bounded paging, unread/read timestamps and related-screen taps.
+  ALONA source observers publish after commit with unique event keys; best effort,
+  without durable replay or device push. Migration is prepared, not deployed.
+- rider_account_page.dart reads actual GET /partner/profile fields and authenticated
+  private photo bytes, edits contact through PATCH /rider/profile and uploads photos
+  to POST /rider/profile-photo. rider_address_edit_page.dart reuses public PSGC
+  directories and submits canonical addresses requiring Logistics reapproval.
+  Protected identity/vehicle/coverage/approval/finance cannot be edited here.
 - Login preserves exact legacy email matches and supports canonical lowercase new
   registrations. Private proof uploads lock the parcel and clean up on record failure.
 - Integration recovery state is in docs/integration; scripts flush/replace/verify

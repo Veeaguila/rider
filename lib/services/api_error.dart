@@ -6,6 +6,9 @@ String apiErrorMessage(http.Response response) {
   if (response.statusCode == 422) {
     try {
       final payload = jsonDecode(response.body);
+      if (payload['code'] == 'valid_photo_required') {
+        return 'A valid delivery photo is required. Capture and upload the photo again, then retry.';
+      }
       final errors = payload['errors'];
       if (errors is Map) {
         final messages = errors.values

@@ -25,6 +25,7 @@ class _LoginPageState extends State<LoginPage> {
   final password = TextEditingController();
   late final riderSession = widget.session ?? RiderSession();
   bool submitting = false;
+  bool showPassword = false;
   String? message;
   bool success = false;
 
@@ -101,56 +102,49 @@ class _LoginPageState extends State<LoginPage> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 460),
+              constraints: const BoxConstraints(maxWidth: 420),
               child: Form(
                 key: formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Center(
+                    Align(
+                      alignment: Alignment.centerLeft,
                       child: Image.asset(
                         'assets/images/alona/alonalogo2.png',
-                        height: 60,
+                        height: 52,
                         fit: BoxFit.contain,
                       ),
                     ),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'RIDER / 02',
-                      style: TextStyle(
-                        letterSpacing: 2,
-                        color: Color(0xff008b8b),
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 32),
                     const Text(
                       'Welcome back',
                       style: TextStyle(
-                        fontSize: 34,
-                        fontWeight: FontWeight.w800,
+                        fontSize: 32,
+                        height: 1.15,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.6,
                       ),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Sign in to check your rider account status.',
+                      'Sign in to your rider account.',
                       style: TextStyle(color: Colors.grey.shade700),
                     ),
-                    const SizedBox(height: 28),
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(18),
-                        border: Border.all(color: const Color(0xffdce7e2)),
-                      ),
+                    const SizedBox(height: 32),
+                    AutofillGroup(
                       child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           TextFormField(
                             controller: email,
                             keyboardType: TextInputType.emailAddress,
+                            autofillHints: const [AutofillHints.username],
+                            textInputAction: TextInputAction.next,
+                            autocorrect: false,
+                            enabled: !submitting,
                             validator: (value) =>
                                 value == null || !value.contains('@')
                                 ? 'Enter a valid email'
@@ -159,15 +153,34 @@ class _LoginPageState extends State<LoginPage> {
                               labelText: 'Email',
                             ),
                           ),
-                          const SizedBox(height: 14),
+                          const SizedBox(height: 20),
                           TextFormField(
                             controller: password,
-                            obscureText: true,
+                            obscureText: !showPassword,
+                            autofillHints: const [AutofillHints.password],
+                            textInputAction: TextInputAction.done,
+                            autocorrect: false,
+                            enableSuggestions: false,
+                            enabled: !submitting,
+                            onFieldSubmitted: (_) => submit(),
                             validator: (value) => value == null || value.isEmpty
-                                ? 'Required'
+                                ? 'Enter your password'
                                 : null,
-                            decoration: const InputDecoration(
+                            decoration: InputDecoration(
                               labelText: 'Password',
+                              suffixIcon: IconButton(
+                                tooltip: showPassword
+                                    ? 'Hide password'
+                                    : 'Show password',
+                                onPressed: () => setState(
+                                  () => showPassword = !showPassword,
+                                ),
+                                icon: Icon(
+                                  showPassword
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                ),
+                              ),
                             ),
                           ),
                           if (message != null) ...[
@@ -184,35 +197,36 @@ class _LoginPageState extends State<LoginPage> {
                               child: const Text('View account status'),
                             ),
                           ],
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 24),
                           SizedBox(
                             width: double.infinity,
-                            child: FilledButton.icon(
+                            child: FilledButton(
                               onPressed: submitting ? null : submit,
-                              icon: submitting
-                                  ? const SizedBox(
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  if (submitting) ...[
+                                    const SizedBox(
                                       width: 18,
                                       height: 18,
                                       child: CircularProgressIndicator(
                                         strokeWidth: 2,
                                         color: Colors.white,
                                       ),
-                                    )
-                                  : const Icon(Icons.login),
-                              label: Text(
-                                submitting ? 'Signing in...' : 'Sign in',
-                              ),
-                              style: FilledButton.styleFrom(
-                                padding: const EdgeInsets.symmetric(
-                                  vertical: 16,
-                                ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                  ],
+                                  Text(
+                                    submitting ? 'Signing in...' : 'Sign in',
+                                  ),
+                                ],
                               ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 16),
                     Center(
                       child: TextButton(
                         onPressed: () => Navigator.of(context).push(
