@@ -55,9 +55,12 @@
   below application limits. Separate return/reschedule workflow NOT IMPLEMENTED.
 - Optional UI preview, account/sample data and launcher were removed in the prior
   cleanup; runtime offline. No preview/database account was created or recreated.
-- No actual database writes/migrations, configuration switches, commits, pushes,
-  resets or deployments. Only the approved scanner dependency was added/pinned.
-  Both repositories remain uncommitted.
+- No actual database writes/migrations, configuration switches, resets or deployments.
+  Only the approved scanner dependency was added/pinned. Rider source/UI work was
+  committed and pushed to github.com/aldriannoriel/rider master on 2026-10-16:
+  e427b66, independently verified against the remote. Publication receipt/checkpoint
+  follows in a documentation commit; see docs/integration/GITHUB_SAVE.md.
+  ALONA's existing source/staged edits remain local and were preserved.
 - Next: follow docs/integration/PARCEL_DELIVERY_IMPLEMENTATION.md and ALONA
   docs/RIDER_FUNCTIONALITY.md; identify actual database before separately approved
   rehearsal/deployment. Read/verify integration recovery bundle before further work.

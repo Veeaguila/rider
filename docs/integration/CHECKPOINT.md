@@ -1,11 +1,11 @@
 # Integration checkpoint
 
-Checkpoint: 2026-10-16T07:21:50.130Z
+Checkpoint: 2026-10-16T07:32:08.832Z
 Saved synchronously; timestamps are UTC.
 
 CURRENT PHASE: 10
-CURRENT TASK: Save the approved Rider source and UI work to its existing GitHub repository
-LAST COMPLETED TASK: Applied the approved UI plan using frontend-design and browser-use: unchanged existing palette, removed decorative Rider labels and screen numbering, simplified auth forms/registration groups, responsive operational layouts, flat panels, consolidated earnings and ALONA Rider browser title. All 93 Flutter tests pass; final analysis/web build and six Edge screenshots pass.
+CURRENT TASK: Rider source/UI saved to GitHub; publication receipt and final checkpoint recorded
+LAST COMPLETED TASK: User-authorized Rider source/UI commit e427b66ef90f793d6238cdaa87d64c325cc2e002 pushed to origin/master and independently matched via ls-remote. Saved current UI/features/tests/docs; unused preview and ignored recovery/build/secret files excluded. ALONA source/staging and database untouched.
 LAST VERIFIED TEST: 93 Flutter tests PASS; final affected Dart analysis clean; web build PASS; six Edge login/registration screenshots reviewed at 320/390/1440px with zero JS exceptions. Source comparison adds no color literals and preserves non-presentation page logic. No actual database/backend operations.
 
 COMPLETED TASKS:
@@ -19,6 +19,7 @@ COMPLETED TASKS:
 - Phase 9 safe API errors, same-origin credential protection, eligibility and rollback-safe proof storage complete
 - Phase 10 automated focused functionality regressions/static/security checks complete locally; earlier web/MySQL finance evidence retained, new migration matching-engine rehearsal and manual/live acceptance pending.
 - User-approved Rider UI refinement complete with existing colors preserved; 93 Flutter tests, clean final analysis, web build and responsive Edge visual checks pass.
+- Rider source/UI published to github.com/aldriannoriel/rider master: e427b66ef90f793d6238cdaa87d64c325cc2e002, independently verified. Publication receipt follows as documentation-only commit.
 
 REMAINING TASKS:
 
@@ -26,7 +27,7 @@ REMAINING TASKS:
 - PENDING: read-only actual database migration/schema inventory and an explicitly approved clone rehearsal before approval for actual Phase 7 migration. No further database creation or configuration switches without approval.
 - PENDING: production isolation, seller-collection contention and multiple-seller/shared-order races; 16 other two-process MySQL races and rollback/retry passed on equivalent schema.
 - PENDING: live device/camera/email/HTTPS/CORS/upload/browser Admin settlement and Rider refresh acceptance; checklist/procedure in RELEASE_READINESS.md.
-- Preserve both uncommitted worktrees and full checkpoint backups. No commits, pushes, resets or actual database migrations without explicit approval.
+- Rider source/UI published under explicit user authorization; preserve ALONA local/staged edits and all checkpoint backups. Future commits/pushes or actual database migrations require applicable user authorization.
 - PENDING: actual-schema inventory must include both prepared finance and notification migrations; rehearse notification uniqueness/read races, concurrent profile photo/Google sign-in and address/Logistics approval locks on an approved MySQL copy.
 - PENDING: native camera/gallery/activity interruption; real profile/photo/address reapproval and notification/account/message/earnings/payout end-to-end acceptance. No new demo or preview accounts.
 - PENDING: approved Android toolchain/native builds and physical QR/Code128 camera/permission/lifecycle tests; live four-role Seller notice/private proof acceptance. No further feature rewrite or migrations automatically.
@@ -283,70 +284,22 @@ M  tests/Feature/PartnerOnboardingTest.php
 
 ### Rider
 
-Git tracked: true; branch: master; HEAD: 9668e82
+Git tracked: true; branch: master; HEAD: e427b66
 
 ```text
-M docs/ARCHITECTURE.md
- M docs/CURRENT_STATE.md
- M docs/DECISIONS.md
- M docs/PROJECT_CONTEXT.md
+M docs/CURRENT_STATE.md
  M docs/integration/CHANGELOG.md
  M docs/integration/CHANGELOG.md.previous
  M docs/integration/CHECKPOINT.md
  M docs/integration/CHECKPOINT.md.previous
- M docs/integration/FINAL_REVIEW.md
- M docs/integration/PHASE7_PROPOSAL.md
- M docs/integration/PHASE7_SHIPMENTS.md
+ M docs/integration/GITHUB_SAVE.md
  M docs/integration/PROGRESS.md
  M docs/integration/PROGRESS.md.previous
  M docs/integration/RESUME.md
  M docs/integration/RESUME.md.previous
  M docs/integration/checkpoint-state.json
  M docs/integration/checkpoint-state.json.previous
- M ios/Runner/Info.plist
- M lib/app.dart
- M lib/pages/delivery_dashboard_page.dart
- M lib/pages/delivery_history_page.dart
- M lib/pages/login_page.dart
- M lib/pages/pickup_dashboard_page.dart
- M lib/pages/proof_capture_page.dart
- M lib/pages/registration_page.dart
- M lib/pages/rider_portal_page.dart
- M lib/services/api_error.dart
- M macos/Flutter/GeneratedPluginRegistrant.swift
- M pubspec.lock
- M pubspec.yaml
- M test/delivery_history_test.dart
- M test/delivery_workflow_test.dart
- M test/pickup_workflow_test.dart
- M test/rider_portal_test.dart
- M web/index.html
- M web/manifest.json
-?? .agents/
-?? docs/UI_DESIGN.md
-?? docs/integration/FUNCTIONALITY_AUDIT.md
-?? docs/integration/PARCEL_DELIVERY_IMPLEMENTATION.md
-?? docs/integration/PHASE10_READINESS.md
-?? docs/integration/RELEASE_READINESS.md
-?? lib/pages/delivery_success_page.dart
-?? lib/pages/parcel_scanner_page.dart
-?? lib/pages/profit_dashboard_page.dart
-?? lib/pages/rider_account_page.dart
-?? lib/pages/rider_address_edit_page.dart
-?? lib/pages/rider_notifications_page.dart
 ?? lib/preview/
-?? lib/services/rider_earnings_api.dart
-?? lib/services/rider_parcel_api.dart
-?? lib/widgets/address_details.dart
-?? lib/widgets/rider_content.dart
-?? test/address_details_test.dart
-?? test/delivery_confirmation_test.dart
-?? test/parcel_scanner_test.dart
-?? test/proof_capture_test.dart
-?? test/rider_account_test.dart
-?? test/rider_earnings_test.dart
-?? test/rider_notifications_test.dart
-?? test/ui_layout_test.dart
 ```
 
 No automatic commit or push. ALONA tracked status above includes all existing changes; ownership must be checked before committing. Rider changes are tracked by Git; HEAD and working-tree status above distinguish committed/local work.
@@ -367,7 +320,7 @@ INTERRUPTED OR RUNNING OPERATIONS:
 
 - None recorded.
 
-NEXT ACTION: Stage Rider source/tests/docs while excluding the unused lib/preview sample, review the staged changes, commit, push master to origin, verify remote hash, and record the publication receipt. Do not modify ALONA or database state.
+NEXT ACTION: Rider source/UI publication verified. The accompanying documentation commit records this receipt; use Git history/remote refs for its final tip. Resume live integration by obtaining the working ALONA website/API URL and existing database identity, then verify the serving project/schema read-only before configuration or migration changes.
 
 RECOVERY NOTES:
 

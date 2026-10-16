@@ -1,6 +1,6 @@
 # Integration changelog
 
-Checkpoint: 2026-10-16T07:09:54.320Z
+Checkpoint: 2026-10-16T07:31:48.908Z
 
 - 2026-10-14T20:16:28.225Z: Initialized durable recovery from verified existing Phases 1-3; prior interrupted turn started no tool operations. No commit or push.
 - 2026-10-14T20:17:41.756Z: Initialized durable recovery from verified existing Phases 1-3; prior interrupted turn started no tool operations. No commit or push.
@@ -259,3 +259,5 @@ Checkpoint: 2026-10-16T07:09:54.320Z
 - 2026-10-16T07:07:04.970Z: rider: flutter test --no-pub passed
 - 2026-10-16T07:09:12.886Z: rider: flutter analyze --no-pub lib/app.dart lib/widgets/rider_content.dart lib/pages test/ui_layout_test.dart passed
 - 2026-10-16T07:09:54.320Z: UI phase complete: 93/93 Flutter tests PASS, final analysis clean, web build PASS, six Edge screenshots reviewed with no JS exceptions; temporary browser/server closed. Registration 320px/150 percent text overflow fixed and retested. Snapshot comparison confirms no added color literals and unchanged non-presentation page logic. Only Rider UI/web metadata/design/current-state docs changed; ALONA source, Git staging, API rules, database/configuration and real accounts untouched.
+- 2026-10-16T07:21:50.130Z: User explicitly authorized saving Rider to Rider GitHub. Verified origin https://github.com/aldriannoriel/rider.git; local master and remote master both 9668e823b100abf9af324047bb6ef73757135ebe before publication. Prior 93-test/static/web/UI evidence remains valid; no application source changes since those checks. Unused local preview file and ignored recovery/generated files will remain uncommitted.
+- 2026-10-16T07:31:48.908Z: Verified GitHub master equals Rider source/UI commit e427b66ef90f793d6238cdaa87d64c325cc2e002 after a normal push. Sixty staged files passed whitespace/path/credential-pattern checks; 93-test/analysis/web/Edge results retained. Publication receipt and current state updated. No ALONA source/staging/database changes; unused local preview preserved.

@@ -2,7 +2,7 @@
 
 Projects: Rider `C:\Users\user\rider`; ALONA `C:\Users\user\alona-ecommerce-integration`.
 Current phase: 10. Objective: shared ALONA API integration with safe disk checkpoints.
-Last successful checkpoint: 2026-10-16T07:21:50.130Z.
+Last successful checkpoint: 2026-10-16T07:32:08.832Z.
 
 ## NEXT CODEX SESSION
 
@@ -10,7 +10,7 @@ Last successful checkpoint: 2026-10-16T07:21:50.130Z.
 2. Check Git branch/status in both projects. Rider is Git-tracked; preserve existing commits and local changes.
 3. Run `node scripts/integration_checkpoint.cjs --verify` from Rider. Inspect only changed/incomplete files; trust verified source over notes.
 4. Treat commands listed as running/interrupted as UNKNOWN. Rerun only affected focused checks; never repeat migrations or destructive actions automatically.
-5. Next exact task: Stage Rider source/tests/docs while excluding the unused lib/preview sample, review the staged changes, commit, push master to origin, verify remote hash, and record the publication receipt. Do not modify ALONA or database state.
+5. Next exact task: Rider source/UI publication verified. The accompanying documentation commit records this receipt; use Git history/remote refs for its final tip. Resume live integration by obtaining the working ALONA website/API URL and existing database identity, then verify the serving project/schema read-only before configuration or migration changes.
 6. Save a checkpoint before each phase, meaningful edit batch, risky edit, long test/build, and after each phase. Use --update with a JSON update file; complete content is flushed to a same-directory temporary file, atomically replaced and verified. Use --run for test/build commands; running and confirmed outcomes are saved automatically. If bundle IDs disagree, use --recover to verify and restore the complete previous bundle while archiving interrupted notes. Inspect RECOVERY_NOTES.md and changed source before continuing. Do not edit checkpoint documents manually.
 
 Dependencies: existing ALONA Sanctum, partner registration/address/coverage contracts, Rider approval and parcel authorization. No extra backend/database.

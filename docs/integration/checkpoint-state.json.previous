@@ -1,7 +1,7 @@
 {
   "phase": 10,
-  "task": "Approved Rider UI refinement complete; live ALONA connection remains pending",
-  "lastCompleted": "Applied the approved UI plan using frontend-design and browser-use: unchanged existing palette, removed decorative Rider labels and screen numbering, simplified auth forms/registration groups, responsive operational layouts, flat panels, consolidated earnings and ALONA Rider browser title. All 93 Flutter tests pass; final analysis/web build and six Edge screenshots pass.",
+  "task": "Rider source/UI saved to GitHub; publication receipt and final checkpoint recorded",
+  "lastCompleted": "User-authorized Rider source/UI commit e427b66ef90f793d6238cdaa87d64c325cc2e002 pushed to origin/master and independently matched via ls-remote. Saved current UI/features/tests/docs; unused preview and ignored recovery/build/secret files excluded. ALONA source/staging and database untouched.",
   "lastVerified": "93 Flutter tests PASS; final affected Dart analysis clean; web build PASS; six Edge login/registration screenshots reviewed at 320/390/1440px with zero JS exceptions. Source comparison adds no color literals and preserves non-presentation page logic. No actual database/backend operations.",
   "phases": [
     {
@@ -64,14 +64,15 @@
     "Phase 8 complete locally: scoped chat, persistent owned Rider notification feed/read/polling, actual profile/private photos, contact and canonical-address editing with Logistics reapproval.",
     "Phase 9 safe API errors, same-origin credential protection, eligibility and rollback-safe proof storage complete",
     "Phase 10 automated focused functionality regressions/static/security checks complete locally; earlier web/MySQL finance evidence retained, new migration matching-engine rehearsal and manual/live acceptance pending.",
-    "User-approved Rider UI refinement complete with existing colors preserved; 93 Flutter tests, clean final analysis, web build and responsive Edge visual checks pass."
+    "User-approved Rider UI refinement complete with existing colors preserved; 93 Flutter tests, clean final analysis, web build and responsive Edge visual checks pass.",
+    "Rider source/UI published to github.com/aldriannoriel/rider master: e427b66ef90f793d6238cdaa87d64c325cc2e002, independently verified. Publication receipt follows as documentation-only commit."
   ],
   "remaining": [
     "BLOCKED: identify actual populated ALONA MySQL schema/configuration. Confirmed project .env selects empty local SQLite; MySQL80 localhost:3306/InnoDB exists, Workbench has no schema saved; OS denies data-directory listing. Need actual schema name or original config source, never passwords in chat.",
     "PENDING: read-only actual database migration/schema inventory and an explicitly approved clone rehearsal before approval for actual Phase 7 migration. No further database creation or configuration switches without approval.",
     "PENDING: production isolation, seller-collection contention and multiple-seller/shared-order races; 16 other two-process MySQL races and rollback/retry passed on equivalent schema.",
     "PENDING: live device/camera/email/HTTPS/CORS/upload/browser Admin settlement and Rider refresh acceptance; checklist/procedure in RELEASE_READINESS.md.",
-    "Preserve both uncommitted worktrees and full checkpoint backups. No commits, pushes, resets or actual database migrations without explicit approval.",
+    "Rider source/UI published under explicit user authorization; preserve ALONA local/staged edits and all checkpoint backups. Future commits/pushes or actual database migrations require applicable user authorization.",
     "PENDING: actual-schema inventory must include both prepared finance and notification migrations; rehearse notification uniqueness/read races, concurrent profile photo/Google sign-in and address/Logistics approval locks on an approved MySQL copy.",
     "PENDING: native camera/gallery/activity interruption; real profile/photo/address reapproval and notification/account/message/earnings/payout end-to-end acceptance. No new demo or preview accounts.",
     "PENDING: approved Android toolchain/native builds and physical QR/Code128 camera/permission/lifecycle tests; live four-role Seller notice/private proof acceptance. No further feature rewrite or migrations automatically."
@@ -270,9 +271,9 @@
     "New parcel proof/notice concurrency scenarios require an approved matching-engine copy; SQLite-memory tests establish contracts/rollback, not InnoDB locking."
   ],
   "operations": [],
-  "next": "UI task complete. For the pending live integration, obtain the working ALONA Buyer/Seller/Logistics website URL and existing database identity, then verify serving project/schema read-only before any connection/configuration or migration change. Native device and live role acceptance remain pending.",
-  "event": "UI phase complete: 93/93 Flutter tests PASS, final analysis clean, web build PASS, six Edge screenshots reviewed with no JS exceptions; temporary browser/server closed. Registration 320px/150 percent text overflow fixed and retested. Snapshot comparison confirms no added color literals and unchanged non-presentation page logic. Only Rider UI/web metadata/design/current-state docs changed; ALONA source, Git staging, API rules, database/configuration and real accounts untouched.",
-  "id": "2026-10-16T07:09:54.320Z",
+  "next": "Source/UI publication is verified. Save/push the publication receipt documentation and compare final local/remote master hashes. Thereafter resume live integration only after the working ALONA website/API URL and existing database are identified.",
+  "event": "Verified GitHub master equals Rider source/UI commit e427b66ef90f793d6238cdaa87d64c325cc2e002 after a normal push. Sixty staged files passed whitespace/path/credential-pattern checks; 93-test/analysis/web/Edge results retained. Publication receipt and current state updated. No ALONA source/staging/database changes; unused local preview preserved.",
+  "id": "2026-10-16T07:31:48.908Z",
   "projectPaths": {
     "rider": "C:\\Users\\user\\rider",
     "alona": "C:\\Users\\user\\alona-ecommerce-integration"
@@ -281,8 +282,8 @@
     "rider": {
       "tracked": true,
       "branch": "master",
-      "head": "9668e82",
-      "status": "M docs/ARCHITECTURE.md\n M docs/CURRENT_STATE.md\n M docs/DECISIONS.md\n M docs/PROJECT_CONTEXT.md\n M docs/integration/CHANGELOG.md\n M docs/integration/CHANGELOG.md.previous\n M docs/integration/CHECKPOINT.md\n M docs/integration/CHECKPOINT.md.previous\n M docs/integration/FINAL_REVIEW.md\n M docs/integration/PHASE7_PROPOSAL.md\n M docs/integration/PHASE7_SHIPMENTS.md\n M docs/integration/PROGRESS.md\n M docs/integration/PROGRESS.md.previous\n M docs/integration/RESUME.md\n M docs/integration/RESUME.md.previous\n M docs/integration/checkpoint-state.json\n M docs/integration/checkpoint-state.json.previous\n M ios/Runner/Info.plist\n M lib/app.dart\n M lib/pages/delivery_dashboard_page.dart\n M lib/pages/delivery_history_page.dart\n M lib/pages/login_page.dart\n M lib/pages/pickup_dashboard_page.dart\n M lib/pages/proof_capture_page.dart\n M lib/pages/registration_page.dart\n M lib/pages/rider_portal_page.dart\n M lib/services/api_error.dart\n M macos/Flutter/GeneratedPluginRegistrant.swift\n M pubspec.lock\n M pubspec.yaml\n M test/delivery_history_test.dart\n M test/delivery_workflow_test.dart\n M test/pickup_workflow_test.dart\n M test/rider_portal_test.dart\n M web/index.html\n M web/manifest.json\n?? .agents/\n?? docs/UI_DESIGN.md\n?? docs/integration/FUNCTIONALITY_AUDIT.md\n?? docs/integration/PARCEL_DELIVERY_IMPLEMENTATION.md\n?? docs/integration/PHASE10_READINESS.md\n?? docs/integration/RELEASE_READINESS.md\n?? lib/pages/delivery_success_page.dart\n?? lib/pages/parcel_scanner_page.dart\n?? lib/pages/profit_dashboard_page.dart\n?? lib/pages/rider_account_page.dart\n?? lib/pages/rider_address_edit_page.dart\n?? lib/pages/rider_notifications_page.dart\n?? lib/preview/\n?? lib/services/rider_earnings_api.dart\n?? lib/services/rider_parcel_api.dart\n?? lib/widgets/address_details.dart\n?? lib/widgets/rider_content.dart\n?? test/address_details_test.dart\n?? test/delivery_confirmation_test.dart\n?? test/parcel_scanner_test.dart\n?? test/proof_capture_test.dart\n?? test/rider_account_test.dart\n?? test/rider_earnings_test.dart\n?? test/rider_notifications_test.dart\n?? test/ui_layout_test.dart"
+      "head": "e427b66",
+      "status": "M docs/CURRENT_STATE.md\n M docs/integration/GITHUB_SAVE.md\n?? lib/preview/"
     },
     "alona": {
       "tracked": true,
@@ -308,7 +309,7 @@
       "README.md": "b0e6e42c4608f8e8551a96baccb89ff3861e3d18ec711383537d9ab1a71e62c0",
       "AGENTS.md": "15069cab5b98047f1c5dd80ff4e61cea89b3afd71b157c62a413f92599da715d",
       "docs/PROJECT_CONTEXT.md": "4e3140f9a22e77f1653f217f56046d581fbba7a9d711ae227bf19c0ebd589d8e",
-      "docs/CURRENT_STATE.md": "32777374d1e05feeee605db84aaa1c38423ba52167267746eb9d612adb7e0db1",
+      "docs/CURRENT_STATE.md": "599b54d728c1f6c783d8c6547cade6580347f55e0a8790fb7d6e10e3595e772a",
       "docs/ARCHITECTURE.md": "e581bb1b8dad22e69ca33b3127c1230dea3b5cf645e3ecf3b5e224976c965a26",
       "scripts/integration_checkpoint.cjs": "12d9ac354c3c554b9c4f054e72ba101b5147f85cbb763262cd2e72e1dbe62c9d",
       "scripts/integration_checkpoint.test.cjs": "7955a1382860c664da3668313441cbafe76cb8d5ef90c580c076c80461c6f815",
@@ -329,7 +330,7 @@
       "docs/integration/PHASE7_PROPOSAL.md": "b979a42e43c4244b3cdc5108d5c8b46823350327c8c28a55663a540c0cf28683",
       "docs/DECISIONS.md": "f55e7b88fb6686ec4a041f7095782c83dfb5edf74d4e786adade4d70aa242a08",
       "docs/integration/PHASE7_SHIPMENTS.md": "5c94eadea084cdf7fdf7964835a3435dbdde931f4ace68385c4bd272e840990a",
-      "docs/integration/GITHUB_SAVE.md": "39b5ec49f18c4c521b5d8e2b8e76656fb8802d9843188cdb6fe593e9d5e14be3",
+      "docs/integration/GITHUB_SAVE.md": "096c590800425b7a39046cd459bd40bdb0eeced463275277909f0dd6fa049774",
       "lib/services/rider_earnings_api.dart": "023edf9226080bbe22f030fa42653afdfc17d83a1b8502d057d25af59019dfb1",
       "lib/pages/profit_dashboard_page.dart": "de9d044b795cba7bb578f498f49ffda8b267ac07bbee855db52d1c337384d7c3",
       "test/rider_earnings_test.dart": "3315623fda5b67dc70c2c52105c7d6475d5816ba2826344cdd0dbb0d6a48fd8a",
@@ -1447,6 +1448,14 @@
     {
       "id": "2026-10-16T07:09:54.320Z",
       "event": "UI phase complete: 93/93 Flutter tests PASS, final analysis clean, web build PASS, six Edge screenshots reviewed with no JS exceptions; temporary browser/server closed. Registration 320px/150 percent text overflow fixed and retested. Snapshot comparison confirms no added color literals and unchanged non-presentation page logic. Only Rider UI/web metadata/design/current-state docs changed; ALONA source, Git staging, API rules, database/configuration and real accounts untouched."
+    },
+    {
+      "id": "2026-10-16T07:21:50.130Z",
+      "event": "User explicitly authorized saving Rider to Rider GitHub. Verified origin https://github.com/aldriannoriel/rider.git; local master and remote master both 9668e823b100abf9af324047bb6ef73757135ebe before publication. Prior 93-test/static/web/UI evidence remains valid; no application source changes since those checks. Unused local preview file and ignored recovery/generated files will remain uncommitted."
+    },
+    {
+      "id": "2026-10-16T07:31:48.908Z",
+      "event": "Verified GitHub master equals Rider source/UI commit e427b66ef90f793d6238cdaa87d64c325cc2e002 after a normal push. Sixty staged files passed whitespace/path/credential-pattern checks; 93-test/analysis/web/Edge results retained. Publication receipt and current state updated. No ALONA source/staging/database changes; unused local preview preserved."
     }
   ],
   "manualChecks": {
