@@ -58,7 +58,7 @@ Allow port 8000 through the local firewall only on the trusted development netwo
 | `android`, `ios`, `web`, `windows`, `macos`, `linux` | Flutter platform projects |
 | `test` | Flutter tests |
 
-Debug builds default to http://localhost:8000/api. Supply API_BASE_URL for emulators or devices; localhost refers to the device itself. Trailing slashes are normalized. Release builds require an explicit HTTPS URL ending in /api:
+Web debug builds default to http://localhost:8000/api. Native builds require an explicit API_BASE_URL reachable from the target; localhost refers to the device itself. Trailing slashes are normalized. Release builds require an explicit HTTPS URL ending in /api:
 
 ```powershell
 flutter build apk --dart-define=API_BASE_URL=https://<alona-host>/api

@@ -1,3 +1,5 @@
+import '../widgets/rider_presence_control.dart';
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -32,6 +34,8 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
   int refreshRevision = 0;
   List<Map<String, dynamic>> available = [];
   List<Map<String, dynamic>> mine = [];
+  String pickupView = 'active';
+  int historyPage = 1, historyLastPage = 1;
   bool loading = true;
   String? error;
   String? success;
@@ -58,6 +62,8 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
   Future<void> refresh() async {
     if (loggingOut) return;
     final revision = ++refreshRevision;
+    final view = pickupView;
+    final page = historyPage;
     setState(() {
       loading = true;
       available = [];
@@ -70,34 +76,46 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
         'Accept': 'application/json',
         'Authorization': 'Bearer $token',
       };
-      final availableResponse = await riderSession.get(
-        Uri.parse(pickupsAvailableUrl),
-        headers: headers,
-      );
-      await checkAuthorization(availableResponse.statusCode);
-      if (availableResponse.statusCode != 200) {
-        throw SessionFailure(apiErrorMessage(availableResponse));
+      var availableRows = <Map<String, dynamic>>[];
+      if (view == 'active') {
+        final response = await riderSession.get(
+          Uri.parse(pickupsAvailableUrl),
+          headers: headers,
+        );
+        await checkAuthorization(response.statusCode);
+        if (response.statusCode != 200) {
+          throw SessionFailure(apiErrorMessage(response));
+        }
+        availableRows = List<Map<String, dynamic>>.from(
+          jsonDecode(response.body)['data'] as List,
+        );
       }
+      final uri = Uri.parse(pickupsMineUrl);
       final mineResponse = await riderSession.get(
-        Uri.parse(pickupsMineUrl),
+        view == 'active'
+            ? uri
+            : uri.replace(
+                queryParameters: {
+                  'view': view,
+                  if (view == 'history') 'page': '$page',
+                },
+              ),
         headers: headers,
       );
       await checkAuthorization(mineResponse.statusCode);
       if (mineResponse.statusCode != 200) {
         throw SessionFailure(apiErrorMessage(mineResponse));
       }
+      final payload = jsonDecode(mineResponse.body) as Map<String, dynamic>;
       if (!mounted || revision != refreshRevision) return;
       setState(() {
-        available = List<Map<String, dynamic>>.from(
-          jsonDecode(availableResponse.body)['data'] as List,
-        );
-        mine = List<Map<String, dynamic>>.from(
-          jsonDecode(mineResponse.body)['data'] as List,
-        );
+        available = availableRows;
+        mine = List<Map<String, dynamic>>.from(payload['data'] as List);
+        historyLastPage = (payload['meta']?['last_page'] as int?) ?? 1;
         loading = false;
       });
     } catch (exception) {
-      if (!mounted) return;
+      if (!mounted || revision != refreshRevision) return;
       setState(() {
         loading = false;
         error = exception is SessionFailure
@@ -152,11 +170,19 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
       if (response.statusCode != 200) {
         throw SessionFailure(apiErrorMessage(response));
       }
+      if (action == 'confirm' && mounted) {
+        setState(() {
+          pickupView = 'transit';
+          historyPage = 1;
+        });
+      }
       await refresh();
       if (mounted) {
         setState(
           () => success = action == 'confirm'
               ? 'Pickup confirmed successfully.'
+              : action == 'acknowledge'
+              ? 'Pickup assignment acknowledged.'
               : 'Pickup accepted successfully.',
         );
       }
@@ -194,6 +220,18 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
             style: const TextStyle(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
+          Text(
+            pickupStatus(pickup['status']),
+            style: const TextStyle(fontWeight: FontWeight.w600),
+          ),
+          if (pickup['status'] == 'PICKED_UP')
+            const Text(
+              'Bring this parcel to your Sorting Center. Only Logistics staff confirm physical arrival.',
+            ),
+          if (pickupView == 'history')
+            const Text(
+              'Pickup handoff completed. This is not a buyer-delivery assignment.',
+            ),
           AddressDetails(parcel: pickup, pickup: true),
           if (!isMine) ...[
             const SizedBox(height: 12),
@@ -202,10 +240,14 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
               child: FilledButton.icon(
                 onPressed: actionParcelId != null ? null : () => accept(pickup),
                 icon: const Icon(Icons.handshake_outlined),
-                label: const Text('Accept pickup'),
+                label: Text(
+                  pickup['nearest_offer_expires_at'] != null
+                      ? 'Accept nearest pickup offer'
+                      : 'Accept pickup',
+                ),
               ),
             ),
-          ] else ...[
+          ] else if (['PLACED', 'PREPARING'].contains(pickup['status'])) ...[
             const SizedBox(height: 10),
             Row(
               children: [
@@ -213,9 +255,15 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
                   child: FilledButton.icon(
                     onPressed: actionParcelId != null
                         ? null
-                        : () => confirmPickup(pickup),
+                        : () => pickup['pickup_assignment_state'] == 'assigned'
+                              ? pickupAction(pickup, 'acknowledge')
+                              : confirmPickup(pickup),
                     icon: const Icon(Icons.check),
-                    label: const Text('Confirm Pickup'),
+                    label: Text(
+                      pickup['pickup_assignment_state'] == 'assigned'
+                          ? 'Accept assigned pickup'
+                          : 'Confirm Pickup',
+                    ),
                   ),
                 ),
               ],
@@ -242,7 +290,11 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
         if (jobs.isEmpty)
           Text(
             isMine
-                ? 'No accepted pickups yet.'
+                ? pickupView == 'transit'
+                      ? 'No parcels in transit to the center.'
+                      : pickupView == 'history'
+                      ? 'No completed pickup handoffs yet.'
+                      : 'No accepted pickups yet.'
                 : 'No pickup jobs are available right now.',
             style: TextStyle(color: Colors.grey.shade700),
           )
@@ -291,6 +343,7 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
           controller: scroll,
           padding: riderPagePadding(context),
           children: [
+            RiderPresenceControl(session: riderSession),
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -318,9 +371,18 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
                   const SizedBox(height: 18),
                   Row(
                     children: [
-                      _summaryCount('Available pickups', available.length),
-                      const SizedBox(width: 12),
-                      _summaryCount('Accepted by you', mine.length),
+                      _summaryCount(
+                        pickupView == 'active'
+                            ? 'Available pickups'
+                            : pickupView == 'transit'
+                            ? 'In transit'
+                            : 'Completed handoffs',
+                        pickupView == 'active' ? available.length : mine.length,
+                      ),
+                      if (pickupView == 'active') ...[
+                        const SizedBox(width: 12),
+                        _summaryCount('Accepted by you', mine.length),
+                      ],
                     ],
                   ),
                 ],
@@ -334,20 +396,93 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
               const SizedBox(height: 16),
               _statusMessage(success!, true),
             ],
+            const SizedBox(height: 16),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  for (final view in const {
+                    'active': 'Pickup jobs',
+                    'transit': 'In Transit to Center',
+                    'history': 'Pickup History',
+                  }.entries)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                        label: Text(view.value),
+                        selected: pickupView == view.key,
+                        onSelected: actionParcelId != null
+                            ? null
+                            : (_) {
+                                setState(() {
+                                  pickupView = view.key;
+                                  historyPage = 1;
+                                });
+                                refresh();
+                              },
+                      ),
+                    ),
+                ],
+              ),
+            ),
             if (loading) ...[
               const SizedBox(height: 40),
               const Center(child: CircularProgressIndicator()),
             ] else ...[
               const SizedBox(height: 28),
-              jobSection('Available pickup jobs', available, isMine: false),
-              const SizedBox(height: 28),
-              jobSection('My accepted pickups', mine, isMine: true),
+              if (pickupView == 'active') ...[
+                jobSection('Available pickup jobs', available, isMine: false),
+                const SizedBox(height: 28),
+              ],
+              jobSection(
+                pickupView == 'transit'
+                    ? 'Collected parcels'
+                    : pickupView == 'history'
+                    ? 'Completed pickup handoffs'
+                    : 'My accepted pickups',
+                mine,
+                isMine: true,
+              ),
+              if (pickupView == 'history')
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton(
+                      onPressed: historyPage <= 1
+                          ? null
+                          : () {
+                              setState(() => historyPage--);
+                              refresh();
+                            },
+                      child: const Text('Previous'),
+                    ),
+                    Text('Page $historyPage of $historyLastPage'),
+                    TextButton(
+                      onPressed: historyPage >= historyLastPage
+                          ? null
+                          : () {
+                              setState(() => historyPage++);
+                              refresh();
+                            },
+                      child: const Text('Next'),
+                    ),
+                  ],
+                ),
             ],
           ],
         ),
       ),
     );
   }
+
+  String pickupStatus(Object? status) => switch (status) {
+    'PICKED_UP' => 'In Transit to Center',
+    'AT_SORTING_CENTER' => 'Arrived at Sorting Center',
+    'OUT_FOR_DELIVERY' => 'Out for Delivery',
+    'DELIVERED' => 'Delivered to Buyer',
+    'FAILED_RETURNED' => 'Failed / Returned',
+    _ => 'Awaiting Seller pickup',
+  };
 
   String _greeting() {
     final hour = DateTime.now().hour;

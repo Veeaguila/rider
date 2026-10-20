@@ -3,6 +3,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 
 import '../widgets/rider_content.dart';
+import '../widgets/rider_handovers.dart';
 
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
@@ -16,6 +17,8 @@ import '../services/rider_portal_api.dart';
 import 'rider_address_edit_page.dart';
 import 'rider_notifications_page.dart';
 import 'login_page.dart';
+import 'rider_cod_page.dart';
+import 'rider_returns_page.dart';
 
 class RiderAccountPage extends StatefulWidget {
   final RiderSession? session;
@@ -334,6 +337,25 @@ class _RiderAccountPageState extends State<RiderAccountPage>
       controller: scroll,
       padding: riderPagePadding(context, maxWidth: 640),
       children: [
+        OutlinedButton(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => RiderCodPage(session: riderSession),
+            ),
+          ),
+          child: const Text('COD cash records'),
+        ),
+        OutlinedButton(
+          onPressed: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => RiderReturnsPage(session: riderSession),
+            ),
+          ),
+          child: const Text('Return to Seller jobs'),
+        ),
+        RiderHandovers(session: riderSession),
         if (loading || saving) const LinearProgressIndicator(),
         if (error != null)
           Text(error!, style: const TextStyle(color: Color(0xff9b3125))),

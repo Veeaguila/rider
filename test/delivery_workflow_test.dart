@@ -74,6 +74,7 @@ void main() {
       await tester.tap(find.text('Mark Delivered'));
       await tester.pumpAndSettle();
       expect(complete, false);
+      await tester.enterText(find.byType(TextFormField), '123456');
       await tester.tap(find.text('Confirm delivery'));
       await tester.pumpAndSettle();
       await tester.pump(const Duration(seconds: 3));

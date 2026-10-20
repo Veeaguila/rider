@@ -165,6 +165,11 @@ void main() {
         data.lengthInBytes,
       );
       var captures = 0, uploads = 0;
+      Future<XFile?> chooseProof() async {
+        captures++;
+        return XFile.fromData(bytes, name: 'proof.png', path: 'proof.png');
+      }
+
       await tester.pumpWidget(
         MaterialApp(
           home: Builder(
@@ -193,14 +198,8 @@ void main() {
                       ),
                       parcelId: 52,
                       deliveryAddress: 'Recipient address',
-                      capturePhoto: () async {
-                        captures++;
-                        return XFile.fromData(
-                          bytes,
-                          name: 'proof.png',
-                          path: 'proof.png',
-                        );
-                      },
+                      capturePhoto: chooseProof,
+                      choosePhoto: chooseProof,
                     ),
                   ),
                 ),
@@ -226,10 +225,11 @@ void main() {
         await tester.pumpAndSettle();
       }
 
-      await take('Capture Photo');
-      expect(find.text('Retake Photo'), findsOneWidget);
+      await take(kIsWeb ? 'Choose proof photo' : 'Capture Photo');
+      final retake = kIsWeb ? 'Choose another photo' : 'Retake Photo';
+      expect(find.text(retake), findsOneWidget);
       expect(find.byType(Image), findsOneWidget);
-      await take('Retake Photo');
+      await take(retake);
       expect(captures, 2);
       await tester.ensureVisible(find.text('Upload Proof'));
       await tester.tap(find.text('Upload Proof'));
@@ -238,6 +238,51 @@ void main() {
       expect(find.text('Open proof'), findsOneWidget);
     },
   );
+
+  testWidgets('gallery rejects oversized intrinsic dimensions before upload', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.windows;
+    try {
+      var uploads = 0;
+      await tester.pumpWidget(
+        MaterialApp(
+          home: ProofCapturePage(
+            session: session(upload: (_) => uploads++),
+            parcelId: 52,
+            deliveryAddress: 'Recipient address',
+            choosePhoto: () async => XFile.fromData(
+              base64Decode(
+                'iVBORw0KGgoAAAANSUhEUgAAF3EAAAABCAYAAABukZBZAAAALklEQVR4nO3BMQEAAADCoPVP7WcKoAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAuAFdxQAByLoM/AAAAABJRU5ErkJggg==',
+              ),
+              name: 'wide.png',
+            ),
+          ),
+        ),
+      );
+      await tester.ensureVisible(find.text('Choose proof photo'));
+      await tester.runAsync(() async {
+        final button = tester.widget<ElevatedButton>(
+          find.widgetWithText(ElevatedButton, 'Choose proof photo'),
+        );
+        final result = Function.apply(button.onPressed!, const []);
+        if (result is Future) await result;
+      });
+      await tester.pumpAndSettle();
+      expect(find.textContaining('6000 × 6000'), findsOneWidget);
+      expect(
+        tester
+            .widget<ElevatedButton>(
+              find.widgetWithText(ElevatedButton, 'Upload Proof'),
+            )
+            .onPressed,
+        isNull,
+      );
+      expect(uploads, 0);
+    } finally {
+      debugDefaultTargetPlatformOverride = null;
+    }
+  });
 
   testWidgets('empty image never enables proof upload', (tester) async {
     await tester.pumpWidget(

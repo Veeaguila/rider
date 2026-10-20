@@ -26,6 +26,14 @@ users/riders, center/area assignments, parcels, order-item tracking and private 
   rates, sums or payouts. Refresh/resume revisions prevent stale response overwrites.
 - Direction: pages use scoped registration/session/portal adapters and the `http`
   package. ALONA owns authentication, membership, task state and persistence.
+- Rider workflow additions (2026-10-20): pickup assignment acknowledgment, transit
+  and paginated handoff history; delivery OTP and explicit failed-attempt retries;
+  account links to COD cash, return-to-Seller jobs and supervised handovers.
+  These use the shared session/portal API; physical cash/custody confirmations
+  remain separate from delivery completion, Seller receipt and Logistics approval.
+- `rider_presence_session.dart` shares foreground availability heartbeats across
+  dashboard controls. `rider_pickup_location.dart` uses geolocator 14.0.2 for
+  explicitly consented one-shot location sharing; no background location stream.
 
 ## Client navigation and request flow
 
@@ -54,9 +62,9 @@ validated `RiderEarningsPage`/`RiderEarning` response classes with string money 
 
 ## Integrations and runtime
 
-- ALONA API_BASE_URL is configurable at build/run time. Debug defaults to
-  http://localhost:8000/api; release requires explicit HTTPS. Emulators/devices
-  require a URL reachable from that target (see README).
+- ALONA API_BASE_URL is configurable at build/run time. Web debug defaults to
+  http://localhost:8000/api; native builds require an explicit reachable URL and
+  release requires explicit HTTPS (see README).
 - `file_picker` handles registration documents; `image_picker` captures native proof
   photos and selects actual gallery images for profile/unsupported-camera targets.
 - User-approved `mobile_scanner` 7.4.2 supplies Android/iOS QR/barcode decoding.
@@ -64,7 +72,7 @@ validated `RiderEarningsPage`/`RiderEarning` response classes with string money 
   and manual reference fallback on other targets; `RiderParcelApi` validates/scopes
   lookup. It opens the existing delivery page with a single parcel filter.
 - Mark Delivered uses additive backend `has_valid_photo_proof`, mandatory capture
-  when absent, server refresh, explicit confirmation and `DeliverySuccessPage` after
+  when absent, server refresh, Buyer OTP confirmation and `DeliverySuccessPage` after
   success only. PHOTO/private-file eligibility and upload dedupe stay in Laravel;
   historical deliveries/financial rules are preserved. Errors keep a stale-photo
   rejection actionable for recapture. No new real-time service or schema in this batch.

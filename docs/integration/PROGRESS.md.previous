@@ -1,6 +1,6 @@
 # Integration progress
 
-Checkpoint: 2026-10-16T07:31:48.908Z
+Checkpoint: 2026-10-20T15:04:52.901Z
 
 ALONA is the single backend and database. Phase definitions below supersede the earlier six-phase outline.
 
@@ -29,10 +29,12 @@ Completed
 - Phase 10 automated focused functionality regressions/static/security checks complete locally; earlier web/MySQL finance evidence retained, new migration matching-engine rehearsal and manual/live acceptance pending.
 - User-approved Rider UI refinement complete with existing colors preserved; 93 Flutter tests, clean final analysis, web build and responsive Edge visual checks pass.
 - Rider source/UI published to github.com/aldriannoriel/rider master: e427b66ef90f793d6238cdaa87d64c325cc2e002, independently verified. Publication receipt follows as documentation-only commit.
+- ALONA Logistics Batch 1 completed under explicit approval; financial and deferred rules preserved
+- 2026-10-20: one approved local Rider account created under explicit user authorization; password hash and persisted linked records verified. No credentials recorded in memory.
 
 Remaining
 
-- BLOCKED: identify actual populated ALONA MySQL schema/configuration. Confirmed project .env selects empty local SQLite; MySQL80 localhost:3306/InnoDB exists, Workbench has no schema saved; OS denies data-directory listing. Need actual schema name or original config source, never passwords in chat.
+- User reports alona_development (MySQL), database sessions and all migrations applied. Existing schema inventory/live acceptance remain unverified; do not rerun migrations or restore the older SQLite configuration.
 - PENDING: read-only actual database migration/schema inventory and an explicitly approved clone rehearsal before approval for actual Phase 7 migration. No further database creation or configuration switches without approval.
 - PENDING: production isolation, seller-collection contention and multiple-seller/shared-order races; 16 other two-process MySQL races and rollback/retry passed on equivalent schema.
 - PENDING: live device/camera/email/HTTPS/CORS/upload/browser Admin settlement and Rider refresh acceptance; checklist/procedure in RELEASE_READINESS.md.

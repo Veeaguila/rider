@@ -1,5 +1,24 @@
 ﻿# Current state
 
+- **2026-10-20 completed Rider workflow source:** pickup assignment acknowledgment,
+  transit and paginated history; Buyer delivery OTP, explicit retries and return-to-
+  Seller pickup/handover/history; COD collection/remittance evidence and supervised
+  physical handover acknowledgment. Shared foreground presence and consented
+  one-shot pickup location use geolocator 14.0.2. Native builds now require an
+  explicit API_BASE_URL. Proof image dimension checks support Flutter web.
+  Backend rollout, real-device GPS/camera and live workflow acceptance remain pending.
+- **2026-10-20 local account administration:** user explicitly authorized one new
+  approved, active Rider account in existing local MySQL `alona_development`.
+  Linked user/Rider records and password hash verified after commit. Contact,
+  vehicle and plate remain blank. Under follow-up user authorization, assigned the
+  sole available sorting center; no delivery-area coverage guessed. No email verification,
+  migrations, configuration switches or deployment performed. Earlier no-write and
+  unidentified-database statements below describe prior integration work.
+- **2026-10-20 local login connection restored:** ALONA API was stopped; started
+  existing backend on loopback port 8000. HTTP login/profile and Rider readiness
+  verified, including browser-origin preflight/headers; diagnostic tokens revoked.
+  After authorized center assignment, available/accepted pickup endpoints return 200;
+  the earlier missing-center 403 is resolved. No source changes.
 - **2026-10-16 UI refinement:** existing palette retained; Rider numbering removed,
   cleaner sign-in/password visibility, grouped registration, flat panels and centered
   responsive work queues/account/photo/message screens. Browser title: ALONA Rider.
@@ -52,7 +71,8 @@
 - **Manual PENDING:** Android/iOS camera/gallery/activity interruption/native build,
   real SMTP verification/approval, live HTTPS/API/CORS/storage/upload limits and full
   Rider/Logistics/Admin settlement acceptance. PHP upload limits previously 2M/8M are
-  below application limits. Separate return/reschedule workflow NOT IMPLEMENTED.
+  below application limits. Return-to-Seller client implemented locally; live return
+  acceptance and a separate reschedule workflow remain pending.
 - Optional UI preview, account/sample data and launcher were removed in the prior
   cleanup; runtime offline. No preview/database account was created or recreated.
 - No actual database writes/migrations, configuration switches, resets or deployments.

@@ -100,24 +100,18 @@ class _ProofCapturePageState extends State<ProofCapturePage>
           throw const SessionFailure("The photo is empty. Take another photo.");
         }
         final buffer = await ui.ImmutableBuffer.fromUint8List(bytes);
-        try {
-          final descriptor = await ui.ImageDescriptor.encoded(buffer);
-          try {
-            if (descriptor.width > 6000 || descriptor.height > 6000) {
+        // The codec callback exposes intrinsic dimensions on both native and web.
+        // Encoded ImageDescriptor.width/height are unsupported in Flutter web.
+        final codec = await ui.instantiateImageCodecWithSize(
+          buffer,
+          getTargetSize: (width, height) {
+            if (width > 6000 || height > 6000) {
               throw const SessionFailure(
                 "Proof images must be no larger than 6000 × 6000 pixels.",
               );
             }
-          } finally {
-            descriptor.dispose();
-          }
-        } finally {
-          buffer.dispose();
-        }
-        final codec = await ui.instantiateImageCodec(
-          bytes,
-          targetWidth: 1200,
-          allowUpscaling: false,
+            return ui.TargetImageSize(width: width > 1200 ? 1200 : width);
+          },
         );
         try {
           final frame = await codec.getNextFrame();

@@ -88,7 +88,6 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.text('Actual Rider'), findsOneWidget);
       expect(find.text('actual@example.test'), findsOneWidget);
-      expect(find.text('2000-01-02'), findsOneWidget);
       await tester.runAsync(() async {
         final callback = tester
             .widget<TextButton>(
@@ -102,6 +101,12 @@ void main() {
       expect(uploaded, true);
       expect(find.text('Profile picture updated.'), findsOneWidget);
       expect(find.byType(Image), findsOneWidget);
+      await tester.scrollUntilVisible(
+        find.text('2000-01-02'),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(find.text('2000-01-02'), findsOneWidget);
       await tester.scrollUntilVisible(
         find.text('bicycle'),
         200,

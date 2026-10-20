@@ -1,3 +1,6 @@
+import '../widgets/delivery_otp_dialog.dart';
+import '../widgets/rider_presence_control.dart';
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -18,6 +21,7 @@ import 'login_page.dart';
 import 'rider_portal_page.dart';
 import 'proof_capture_page.dart';
 import 'delivery_history_page.dart';
+import 'rider_returns_page.dart';
 import 'parcel_scanner_page.dart';
 import 'delivery_success_page.dart';
 
@@ -162,27 +166,13 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
         current = updated;
       }
       if (!mounted) return;
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Confirm successful delivery'),
-          content: Text(
-            'Confirm that ${current['order_id']} was successfully delivered to the recipient. Your photo proof will be attached.',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Confirm delivery'),
-            ),
-          ],
-        ),
+      final otp = await showDeliveryOtpDialog(
+        context,
+        current['order_id'].toString(),
       );
-      if (confirmed != true || !mounted) return;
-      if (await updateDelivery(current, 'deliver') && mounted) {
+      if (otp == null || !mounted) return;
+      if (await updateDelivery(current, 'deliver', body: {'otp': otp}) &&
+          mounted) {
         await Navigator.push(
           context,
           MaterialPageRoute(
@@ -304,9 +294,12 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
           payload['message']?.toString() ?? 'Could not update this delivery.',
         );
       }
+      if (action != 'deliver') await refresh();
       if (!mounted) return false;
       setState(() {
-        deliveries.removeWhere((item) => item['id'] == delivery['id']);
+        if (action == 'deliver') {
+          deliveries.removeWhere((item) => item['id'] == delivery['id']);
+        }
         success =
             payload['message']?.toString() ?? 'Delivery updated successfully.';
         actionParcelId = null;
@@ -391,7 +384,35 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
                 label: const Text('Start Delivery'),
               ),
             )
-          else ...[
+          else if (delivery['status'] != 'OUT_FOR_DELIVERY')
+            Text(
+              'Logistics exception: ${delivery['status']}. Contact your Logistics organization.',
+            )
+          else if (delivery['return_status'] != null ||
+              delivery['rts_eligible'] == true) ...[
+            const Text(
+              'Return to Seller eligible or in progress. Await Logistics instructions; this is not a completed Buyer delivery.',
+            ),
+            OutlinedButton(
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => RiderReturnsPage(session: riderSession),
+                ),
+              ),
+              child: const Text('Return to Seller jobs'),
+            ),
+          ] else if (delivery['awaiting_retry'] == true) ...[
+            Text(
+              'Failed attempts: ${delivery['attempt_count']} of 3. Start another attempt only when you actually resume delivery.',
+            ),
+            FilledButton(
+              onPressed: actionParcelId != null
+                  ? null
+                  : () => updateDelivery(delivery, 'retry'),
+              child: const Text('Start next delivery attempt'),
+            ),
+          ] else ...[
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
@@ -483,6 +504,7 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
           controller: scroll,
           padding: riderPagePadding(context),
           children: [
+            RiderPresenceControl(session: riderSession),
             if (widget.parcelId == null) ...[
               FilledButton.icon(
                 onPressed: loggingOut || actionParcelId != null

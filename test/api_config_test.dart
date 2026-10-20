@@ -5,6 +5,28 @@ import 'package:http/http.dart' as http;
 import 'package:rider_app/services/api_config.dart';
 
 void main() {
+  test('native builds require an explicit reachable URL; production requires HTTPS', () {
+    expect(
+      () => resolveApiBaseUrl('', web: false, release: false),
+      throwsFormatException,
+    );
+    expect(
+      resolveApiBaseUrl('', web: true, release: false),
+      'http://localhost:8000/api',
+    );
+    expect(
+      resolveApiBaseUrl('https://alona.example/api', web: false, release: true),
+      'https://alona.example/api',
+    );
+    expect(
+      () => resolveApiBaseUrl(
+        'http://alona.example/api',
+        web: false,
+        release: true,
+      ),
+      throwsFormatException,
+    );
+  });
   test('normalizes ALONA base URL and rejects unsafe configuration', () {
     expect(
       normalizeApiBaseUrl(' https://alona.example/api/// '),

@@ -1,9 +1,6 @@
 import 'package:flutter/foundation.dart';
 
-const _configuredBaseUrl = String.fromEnvironment(
-  'API_BASE_URL',
-  defaultValue: kReleaseMode ? '' : 'http://localhost:8000/api',
-);
+const _configuredBaseUrl = String.fromEnvironment('API_BASE_URL');
 
 String normalizeApiBaseUrl(String value, {bool requireHttps = false}) {
   final base = value.trim().replaceFirst(RegExp(r'/+$'), '');
@@ -28,8 +25,19 @@ String normalizeApiBaseUrl(String value, {bool requireHttps = false}) {
   return base;
 }
 
+String resolveApiBaseUrl(
+  String configured, {
+  required bool web,
+  required bool release,
+}) {
+  final value = configured.trim().isEmpty && web && !release
+      ? 'http://localhost:8000/api'
+      : configured;
+  return normalizeApiBaseUrl(value, requireHttps: release);
+}
+
 String get apiBaseUrl =>
-    normalizeApiBaseUrl(_configuredBaseUrl, requireHttps: kReleaseMode);
+    resolveApiBaseUrl(_configuredBaseUrl, web: kIsWeb, release: kReleaseMode);
 
 String get apiUrl => '$apiBaseUrl/rider/register';
 String get sortingCentersUrl => '$apiBaseUrl/sorting-centers';

@@ -110,6 +110,8 @@ void main() {
               jsonEncode({
                 'data': request.url.path.endsWith('/partner/profile')
                     ? readyProfile()
+                    : request.url.path.endsWith('/presence')
+                    ? {'presence': 'Unknown', 'is_current_session': false}
                     : request.url.path.endsWith('/mine')
                     ? []
                     : [parcel],
@@ -132,7 +134,11 @@ void main() {
         );
         await tester.pumpAndSettle();
         final action = find.text(deliveries ? 'Mark Failed' : 'Accept pickup');
-        await tester.ensureVisible(action);
+        await tester.scrollUntilVisible(
+          action,
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
         await tester.pumpAndSettle();
         expect(action, findsOneWidget);
         expect(tester.takeException(), isNull);

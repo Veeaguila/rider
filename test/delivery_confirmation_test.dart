@@ -53,6 +53,7 @@ void main() {
       }
 
       await deliver();
+      await tester.enterText(find.byType(TextFormField), '123456');
       await tester.tap(find.text('Confirm delivery'));
       await tester.pumpAndSettle();
       expect(posts, 1);
@@ -163,6 +164,7 @@ void main() {
         } else {
           expect(uploaded, true);
           expect(find.text('Confirm delivery'), findsOneWidget);
+          await tester.enterText(find.byType(TextFormField), '123456');
           await tester.tap(find.text('Confirm delivery'));
           await tester.pumpAndSettle();
           expect(deliveries, 1);
