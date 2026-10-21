@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import '../services/registration_api.dart';
 import '../services/api_error.dart';
+import '../theme/rider_theme.dart';
 
 class RegistrationPage extends StatefulWidget {
   final RegistrationApi? api;
@@ -416,19 +417,48 @@ class _RegistrationPageState extends State<RegistrationPage> {
     );
   }
 
-  Widget section(String title, List<Widget> children) {
+  Widget section(String title, List<Widget> children, {IconData? icon}) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: RiderColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
+          Row(
+            children: [
+              if (icon != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: RiderColors.teal.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(icon, size: 18, color: RiderColors.teal),
+                ),
+                const SizedBox(width: 10),
+              ],
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
+                    color: RiderColors.text,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           ...children,
@@ -441,15 +471,27 @@ class _RegistrationPageState extends State<RegistrationPage> {
     return Expanded(
       child: OutlinedButton.icon(
         onPressed: submitting ? null : () => pickDocument(key),
-        icon: Icon(file == null ? Icons.upload_file : Icons.check_circle),
+        icon: Icon(
+          file == null ? Icons.cloud_upload_outlined : Icons.check_circle_rounded,
+          color: file == null ? RiderColors.teal : RiderColors.success,
+        ),
         label: Text(
           file == null ? label : file.name,
           overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontWeight: FontWeight.w600,
+            color: file == null ? RiderColors.teal : RiderColors.text,
+          ),
         ),
         style: OutlinedButton.styleFrom(
-          foregroundColor: const Color(0xff008b8b),
-          side: const BorderSide(color: Color(0xffffa500), width: 1.5),
+          side: BorderSide(
+            color: file == null ? RiderColors.teal : RiderColors.success,
+            width: 1.5,
+          ),
           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           alignment: Alignment.centerLeft,
         ),
       ),
@@ -464,6 +506,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
         )
         .toList();
     return Scaffold(
+      backgroundColor: RiderColors.background,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
@@ -512,7 +555,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
                       style: TextStyle(color: Colors.grey.shade700),
                     ),
                     const SizedBox(height: 28),
-                    section('Sorting center', [
+                    section(
+                      'Sorting center',
+                      icon: Icons.store_mall_directory_outlined,
+                      [
                       codeDropdown(
                         'Delivery area to add',
                         null,
@@ -613,7 +659,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         onPressed: submitting ? null : loadDirectory,
                         child: const Text('Retry registration options'),
                       ),
-                    section('Personal details', [
+                    section(
+                      'Personal details',
+                      icon: Icons.person_outline_rounded,
+                      [
                       LayoutBuilder(
                         builder: (context, constraints) {
                           final items = [
@@ -687,7 +736,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
                       ),
                     ]),
                     const SizedBox(height: 16),
-                    section('Account details', [
+                    section(
+                      'Account details',
+                      icon: Icons.lock_outline_rounded,
+                      [
                       field(
                         email,
                         'Email',
@@ -717,7 +769,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
                       ),
                     ]),
                     const SizedBox(height: 16),
-                    section('Contact and address', [
+                    section(
+                      'Contact and address',
+                      icon: Icons.location_on_outlined,
+                      [
                       field(
                         contact,
                         'Contact number',
@@ -783,7 +838,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
                       ),
                     ]),
                     const SizedBox(height: 16),
-                    section('Vehicle and documents', [
+                    section(
+                      'Vehicle and documents',
+                      icon: Icons.two_wheeler_outlined,
+                      [
                       dropdown('Vehicle type', vehicleType, const [
                         'motorcycle',
                         'bicycle',
@@ -868,7 +926,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           ? null
                           : (value) =>
                                 setState(() => acceptedTerms = value ?? false),
-                      activeColor: const Color(0xff008b8b),
+                      activeColor: RiderColors.teal,
                       contentPadding: EdgeInsets.zero,
                       controlAffinity: ListTileControlAffinity.leading,
                       title: const Text(
@@ -883,7 +941,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           : (value) => setState(
                               () => acceptedPrivacy = value ?? false,
                             ),
-                      activeColor: const Color(0xff008b8b),
+                      activeColor: RiderColors.teal,
                       contentPadding: EdgeInsets.zero,
                       controlAffinity: ListTileControlAffinity.leading,
                       title: const Text(
@@ -937,14 +995,32 @@ class _RegistrationPageState extends State<RegistrationPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: isSuccess ? const Color(0xffdff4e9) : const Color(0xffffe6e2),
+        color: isSuccess ? const Color(0xFFDCFCE7) : const Color(0xFFFEE2E2),
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: isSuccess ? const Color(0xff176b43) : const Color(0xff9b3125),
+        border: Border.all(
+          color: isSuccess ? RiderColors.success.withValues(alpha: 0.3) : RiderColors.danger.withValues(alpha: 0.3),
         ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            isSuccess ? Icons.check_circle_outline : Icons.error_outline,
+            color: isSuccess ? RiderColors.success : RiderColors.danger,
+            size: 20,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: isSuccess ? const Color(0xFF166534) : const Color(0xFF991B1B),
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

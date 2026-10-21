@@ -16,6 +16,8 @@ import 'delivery_dashboard_page.dart';
 import 'login_page.dart';
 import 'rider_portal_page.dart';
 
+import '../theme/rider_theme.dart';
+
 class PickupDashboardPage extends StatefulWidget {
   final RiderSession? session;
   const PickupDashboardPage({super.key, this.session});
@@ -347,7 +349,7 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xff008b8b),
+                color: RiderColors.teal,
                 borderRadius: BorderRadius.circular(18),
               ),
               child: Column(

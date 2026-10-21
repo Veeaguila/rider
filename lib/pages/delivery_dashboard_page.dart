@@ -24,6 +24,7 @@ import 'delivery_history_page.dart';
 import 'rider_returns_page.dart';
 import 'parcel_scanner_page.dart';
 import 'delivery_success_page.dart';
+import '../theme/rider_theme.dart';
 
 class DeliveryDashboardPage extends StatefulWidget {
   final RiderSession? session;
@@ -329,12 +330,21 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
   }
 
   Widget deliveryCard(Map<String, dynamic> delivery) {
+    final isAssigned = delivery['status'] == 'AT_SORTING_CENTER';
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: RiderColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -346,33 +356,39 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
             children: [
               Text(
                 'Order ${delivery['order_id']}',
-                style: const TextStyle(fontWeight: FontWeight.w700),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                  color: RiderColors.text,
+                ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(
                   horizontal: 10,
-                  vertical: 5,
+                  vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xffffefd0),
+                  color: isAssigned
+                      ? RiderColors.amberBadge
+                      : RiderColors.blueBadge,
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  delivery['status'] == 'AT_SORTING_CENTER'
-                      ? 'ASSIGNED'
-                      : 'IN TRANSIT',
+                  isAssigned ? 'ASSIGNED' : 'IN TRANSIT',
                   style: TextStyle(
-                    color: Color(0xff995800),
+                    color: isAssigned
+                        ? RiderColors.amberBadgeText
+                        : RiderColors.blueBadgeText,
                     fontSize: 12,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
-          AddressDetails(parcel: delivery),
           const SizedBox(height: 12),
+          AddressDetails(parcel: delivery),
+          const SizedBox(height: 14),
           if (delivery['status'] == 'AT_SORTING_CENTER')
             SizedBox(
               width: double.infinity,
@@ -380,7 +396,7 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
                 onPressed: actionParcelId != null
                     ? null
                     : () => startDelivery(delivery),
-                icon: const Icon(Icons.play_arrow),
+                icon: const Icon(Icons.play_arrow_rounded),
                 label: const Text('Start Delivery'),
               ),
             )
@@ -445,7 +461,7 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
                   icon: const Icon(Icons.check_circle_outline),
                   label: const Text('Mark Delivered'),
                   style: FilledButton.styleFrom(
-                    backgroundColor: const Color(0xff28a745),
+                    backgroundColor: RiderColors.success,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -455,6 +471,10 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
                       : () => markFailed(delivery),
                   icon: const Icon(Icons.report_problem_outlined),
                   label: const Text('Mark Failed'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: RiderColors.danger,
+                    side: const BorderSide(color: RiderColors.danger),
+                  ),
                 ),
               ],
             ),
@@ -467,12 +487,22 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: RiderColors.background,
       appBar: AppBar(
         title: Text(
           widget.parcelId == null ? 'Deliveries' : 'Delivery details',
         ),
         actions: [
           riderTools(context, riderSession),
+          IconButton(
+            tooltip: 'Notifications',
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => RiderNotificationsPage(session: riderSession),
+              ),
+            ),
+            icon: const Icon(Icons.notifications_outlined),
+          ),
           IconButton(
             icon: const Icon(Icons.history),
             tooltip: 'Delivery history',
@@ -527,7 +557,7 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xff008b8b),
+                color: RiderColors.teal,
                 borderRadius: BorderRadius.circular(18),
               ),
               child: Row(

@@ -10,6 +10,7 @@ import '../services/parcel_address.dart';
 import '../services/rider_session.dart';
 import '../services/rider_session_guard.dart';
 import 'profit_dashboard_page.dart';
+import '../theme/rider_theme.dart';
 
 class DeliveryHistoryPage extends StatefulWidget {
   final RiderSession? session;
@@ -91,6 +92,7 @@ class _DeliveryHistoryPageState extends State<DeliveryHistoryPage>
 
   @override
   Widget build(BuildContext context) => Scaffold(
+    backgroundColor: RiderColors.background,
     appBar: AppBar(
       title: const Text('Delivery History'),
       actions: [
@@ -104,16 +106,27 @@ class _DeliveryHistoryPageState extends State<DeliveryHistoryPage>
     body: ListView(
       padding: riderPagePadding(context),
       children: [
-        Card(
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Text(
-              'Delivered: ${summary['DELIVERED'] ?? 0}   Failed: ${summary['FAILED_RETURNED'] ?? 0}   Active: ${summary['active'] ?? 0}',
-            ),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: RiderColors.border),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.02),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Text(
+            'Delivered: ${summary['DELIVERED'] ?? 0}   Failed: ${summary['FAILED_RETURNED'] ?? 0}   Active: ${summary['active'] ?? 0}',
+            style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
           ),
         ),
         Padding(
-          padding: EdgeInsets.symmetric(vertical: 12),
+          padding: const EdgeInsets.symmetric(vertical: 12),
           child: TextButton(
             onPressed: () => Navigator.push(
               context,
@@ -126,17 +139,36 @@ class _DeliveryHistoryPageState extends State<DeliveryHistoryPage>
         ),
         if (loading) const Center(child: CircularProgressIndicator()),
         if (error != null)
-          Text(error!, style: const TextStyle(color: Color(0xff9b3125))),
+          Text(error!, style: const TextStyle(color: RiderColors.danger)),
         if (!loading && error == null && rows.isEmpty)
           const Text('No completed deliveries yet.'),
         for (final row in rows)
-          Card(
-            child: ListTile(
-              title: Text('Order ${row['order_id']}'),
-              subtitle: Text(
-                '${row['status'].toString().replaceAll('_', ' ')}\n${deliveryAddress(row)}${row['failure_reason'] == null ? '' : '\n${row['failure_reason']}'}${row['delivered_at'] == null ? '' : '\nCompleted: ${row['delivered_at']}'}',
+          Container(
+            margin: const EdgeInsets.only(bottom: 10),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: RiderColors.border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: ListTile(
+                title: Text(
+                  'Order ${row['order_id']}',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: Text(
+                  '${row['status'].toString().replaceAll('_', ' ')}\n${deliveryAddress(row)}${row['failure_reason'] == null ? '' : '\n${row['failure_reason']}'}${row['delivered_at'] == null ? '' : '\nCompleted: ${row['delivered_at']}'}',
+                ),
+                isThreeLine: true,
               ),
-              isThreeLine: true,
             ),
           ),
         Wrap(

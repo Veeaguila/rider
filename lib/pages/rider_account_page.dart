@@ -19,6 +19,7 @@ import 'rider_notifications_page.dart';
 import 'login_page.dart';
 import 'rider_cod_page.dart';
 import 'rider_returns_page.dart';
+import '../theme/rider_theme.dart';
 
 class RiderAccountPage extends StatefulWidget {
   final RiderSession? session;
@@ -294,7 +295,7 @@ class _RiderAccountPageState extends State<RiderAccountPage>
   }
 
   Widget field(String label, dynamic data) => Padding(
-    padding: const EdgeInsets.only(bottom: 12),
+    padding: const EdgeInsets.only(bottom: 10),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -305,6 +306,7 @@ class _RiderAccountPageState extends State<RiderAccountPage>
   );
   @override
   Widget build(BuildContext context) => Scaffold(
+    backgroundColor: RiderColors.background,
     appBar: AppBar(
       title: const Text('My account'),
       actions: [

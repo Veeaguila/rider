@@ -12,6 +12,7 @@ import '../services/rider_session.dart';
 import '../services/rider_session_guard.dart';
 import 'delivery_dashboard_page.dart';
 import 'delivery_history_page.dart';
+import '../theme/rider_theme.dart';
 
 class ParcelScannerPage extends StatefulWidget {
   final RiderSession? session;
@@ -140,6 +141,7 @@ class _ParcelScannerPageState extends State<ParcelScannerPage>
 
   @override
   Widget build(BuildContext context) => Scaffold(
+    backgroundColor: RiderColors.background,
     appBar: AppBar(title: const Text('Scan parcel')),
     body: ListView(
       padding: riderPagePadding(context, maxWidth: 640),
@@ -215,10 +217,10 @@ class _ParcelScannerPageState extends State<ParcelScannerPage>
                             child: DecoratedBox(
                               decoration: BoxDecoration(
                                 border: Border.all(
-                                  color: const Color(0xff00c6b7),
+                                  color: RiderColors.teal,
                                   width: 3,
                                 ),
-                                borderRadius: BorderRadius.circular(14),
+                                borderRadius: BorderRadius.circular(16),
                               ),
                             ),
                           ),

@@ -146,7 +146,7 @@ class _RiderHandoversState extends State<RiderHandovers> {
                   Text(
                     '${row['from_rider']?['name']} → ${row['to_rider']?['name']}',
                   ),
-                  Text('Parcels: ${(row['parcel_ids'] as List).join(', ')}'),
+                  Text('Parcels: ${((row['parcel_ids'] as List?) ?? const []).join(', ')}'),
                   Text('Reason: ${row['reason']}'),
                   if (row['status'] == 'pending' &&
                       (row['from_rider_id'] == riderId

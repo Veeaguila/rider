@@ -13,6 +13,7 @@ import 'pickup_dashboard_page.dart';
 import 'delivery_dashboard_page.dart';
 import 'delivery_history_page.dart';
 import 'profit_dashboard_page.dart';
+import '../theme/rider_theme.dart';
 
 class RiderNotificationsPage extends StatefulWidget {
   final RiderSession? session;
@@ -151,6 +152,7 @@ class _RiderNotificationsPageState extends State<RiderNotificationsPage>
 
   @override
   Widget build(BuildContext context) => Scaffold(
+    backgroundColor: RiderColors.background,
     appBar: AppBar(
       title: const Text('Notifications'),
       actions: [
@@ -167,42 +169,100 @@ class _RiderNotificationsPageState extends State<RiderNotificationsPage>
         padding: riderPagePadding(context, maxWidth: 720),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          Text(
-            unread == null
-                ? 'Unread count unavailable'
-                : '$unread unread notifications',
-            style: Theme.of(context).textTheme.titleMedium,
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: RiderColors.border),
+            ),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.notifications_active_outlined,
+                  size: 20,
+                  color: RiderColors.teal,
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  unread == null
+                      ? 'Unread count unavailable'
+                      : '$unread unread notifications',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                    color: RiderColors.text,
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 16),
           if (loading || opening) const LinearProgressIndicator(),
           if (error != null)
-            Text(error!, style: const TextStyle(color: Color(0xff9b3125))),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(error!, style: const TextStyle(color: RiderColors.danger)),
+            ),
           if (!loading && rows.isEmpty && error == null)
             const Padding(
               padding: EdgeInsets.only(top: 16),
               child: Text('You are up to date.'),
             ),
           for (final row in rows)
-            Card(
-              child: ListTile(
-                leading: Icon(
-                  row['read_at'] == null
-                      ? Icons.notifications_active_outlined
-                      : Icons.notifications_none,
-                  color: const Color(0xff008b8b),
+            Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: row['read_at'] == null
+                      ? RiderColors.teal.withValues(alpha: 0.3)
+                      : RiderColors.border,
                 ),
-                title: Text(
-                  row['title'].toString(),
-                  style: TextStyle(
-                    fontWeight: row['read_at'] == null
-                        ? FontWeight.w700
-                        : FontWeight.normal,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
                   ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: row['read_at'] == null
+                          ? RiderColors.mintBadge
+                          : const Color(0xFFF3F4F6),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      row['read_at'] == null
+                          ? Icons.notifications_active_outlined
+                          : Icons.notifications_none,
+                      color: row['read_at'] == null
+                          ? RiderColors.mintBadgeText
+                          : RiderColors.textSecondary,
+                      size: 20,
+                    ),
+                  ),
+                  title: Text(
+                    row['title'].toString(),
+                    style: TextStyle(
+                      fontWeight: row['read_at'] == null
+                          ? FontWeight.w700
+                          : FontWeight.w500,
+                    ),
+                  ),
+                  subtitle: Text(
+                    '${row['body']}\n${timestamp(row['created_at'])}\n${row['read_at'] == null ? 'Unread' : 'Read'}',
+                    style: const TextStyle(fontSize: 13),
+                  ),
+                  onTap: loading || opening ? null : () => open(row),
                 ),
-                subtitle: Text(
-                  '${row['body']}\n${timestamp(row['created_at'])}\n${row['read_at'] == null ? 'Unread' : 'Read'}',
-                ),
-                onTap: loading || opening ? null : () => open(row),
               ),
             ),
           if (page < lastPage)

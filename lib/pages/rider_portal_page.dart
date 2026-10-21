@@ -10,6 +10,7 @@ export 'rider_account_page.dart';
 import 'rider_notifications_page.dart';
 export 'rider_notifications_page.dart';
 import 'profit_dashboard_page.dart';
+import '../theme/rider_theme.dart';
 
 Widget riderTools(BuildContext context, RiderSession session) =>
     PopupMenuButton<String>(
@@ -168,6 +169,7 @@ class _RiderChatPageState extends State<RiderChatPage>
 
   @override
   Widget build(BuildContext context) => Scaffold(
+    backgroundColor: RiderColors.background,
     appBar: AppBar(
       title: const Text('Messages'),
       actions: [
@@ -183,61 +185,169 @@ class _RiderChatPageState extends State<RiderChatPage>
       children: [
         if (loading) const Center(child: CircularProgressIndicator()),
         if (error != null)
-          Text(error!, style: const TextStyle(color: Color(0xff9b3125))),
-        DropdownButtonFormField<int>(
-          key: ValueKey('recipient-$recipientId-${recipients.length}'),
-          initialValue: recipientId,
-          isExpanded: true,
-          decoration: const InputDecoration(labelText: 'New message to'),
-          items: recipients
-              .map(
-                (r) => DropdownMenuItem<int>(
-                  value: (r['id'] as num).toInt(),
-                  child: Text(r['name'].toString()),
-                ),
-              )
-              .toList(),
-          onChanged: sending || opening
-              ? null
-              : (id) => setState(() {
-                  recipientId = id;
-                  conversationId = null;
-                  messages = [];
-                  revision++;
-                }),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: Text(error!, style: const TextStyle(color: RiderColors.danger)),
+          ),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: RiderColors.border),
+          ),
+          child: DropdownButtonFormField<int>(
+            key: ValueKey('recipient-$recipientId-${recipients.length}'),
+            initialValue: recipientId,
+            isExpanded: true,
+            decoration: const InputDecoration(labelText: 'New message to'),
+            items: recipients
+                .map(
+                  (r) => DropdownMenuItem<int>(
+                    value: (r['id'] as num).toInt(),
+                    child: Text(r['name'].toString()),
+                  ),
+                )
+                .toList(),
+            onChanged: sending || opening
+                ? null
+                : (id) => setState(() {
+                    recipientId = id;
+                    conversationId = null;
+                    messages = [];
+                    revision++;
+                  }),
+          ),
         ),
         const SizedBox(height: 12),
         for (final row in conversations)
-          Card(
-            child: ListTile(
-              title: Text(
-                row['recipient']?['name']?.toString() ?? 'Conversation',
+          Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: RiderColors.border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: RiderColors.teal.withValues(alpha: 0.1),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.person_outline_rounded,
+                    color: RiderColors.teal,
+                    size: 20,
+                  ),
+                ),
+                title: Text(
+                  row['recipient']?['name']?.toString() ?? 'Conversation',
+                  style: const TextStyle(fontWeight: FontWeight.w700),
+                ),
+                subtitle: Text(row['latest_message']?['body']?.toString() ?? ''),
+                trailing: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: (row['unread_count'] ?? 0) > 0
+                        ? RiderColors.redBadge
+                        : const Color(0xFFF3F4F6),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${row['unread_count'] ?? 0} unread',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: (row['unread_count'] ?? 0) > 0
+                          ? RiderColors.redBadgeText
+                          : RiderColors.textSecondary,
+                    ),
+                  ),
+                ),
+                onTap: sending ? null : () => open((row['id'] as num).toInt()),
               ),
-              subtitle: Text(row['latest_message']?['body']?.toString() ?? ''),
-              trailing: Text('${row['unread_count'] ?? 0} unread'),
-              onTap: sending ? null : () => open((row['id'] as num).toInt()),
             ),
           ),
         if (opening) const LinearProgressIndicator(),
         for (final message in messages)
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
+          Align(
+            alignment: message['is_mine'] == true
+                ? Alignment.centerRight
+                : Alignment.centerLeft,
+            child: Container(
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.78,
+              ),
+              decoration: BoxDecoration(
+                color: message['is_mine'] == true
+                    ? RiderColors.teal
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(16).copyWith(
+                  bottomRight: message['is_mine'] == true
+                      ? const Radius.circular(2)
+                      : const Radius.circular(16),
+                  bottomLeft: message['is_mine'] == true
+                      ? const Radius.circular(16)
+                      : const Radius.circular(2),
+                ),
+                border: message['is_mine'] == true
+                    ? null
+                    : Border.all(color: RiderColors.border),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
               child: Text(
                 '${message['sender']?['name'] ?? 'Rider'}: ${message['body']}',
+                style: TextStyle(
+                  color: message['is_mine'] == true
+                      ? Colors.white
+                      : RiderColors.text,
+                  fontSize: 14,
+                ),
               ),
             ),
           ),
         const SizedBox(height: 12),
-        TextField(
-          controller: text,
-          maxLength: 4000,
-          maxLines: 3,
-          decoration: const InputDecoration(labelText: 'Message'),
-        ),
-        FilledButton(
-          onPressed: sending || opening ? null : send,
-          child: Text(sending ? 'Sending...' : 'Send message'),
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: RiderColors.border),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: text,
+                maxLength: 4000,
+                maxLines: 3,
+                decoration: const InputDecoration(labelText: 'Message'),
+              ),
+              const SizedBox(height: 12),
+              FilledButton(
+                onPressed: sending || opening ? null : send,
+                child: Text(sending ? 'Sending...' : 'Send message'),
+              ),
+            ],
+          ),
         ),
       ],
     ),
