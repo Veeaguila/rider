@@ -41,11 +41,13 @@ class _RiderPickupLocationState extends State<RiderPickupLocation> {
       message = null;
     });
     try {
-      if (!await Geolocator.isLocationServiceEnabled())
+      if (!await Geolocator.isLocationServiceEnabled()) {
         throw Exception('Enable device location services and try again.');
+      }
       var permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.denied)
+      if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
+      }
       if (permission != LocationPermission.whileInUse &&
           permission != LocationPermission.always) {
         throw Exception(
@@ -58,10 +60,11 @@ class _RiderPickupLocationState extends State<RiderPickupLocation> {
           timeLimit: Duration(seconds: 20),
         ),
       );
-      if (point.isMocked)
+      if (point.isMocked) {
         throw Exception(
           'A real device location is required for nearest pickup offers.',
         );
+      }
       final result = await RiderPortalApi(widget.session).request(
         'rider/pickup-location',
         method: 'POST',
@@ -75,10 +78,11 @@ class _RiderPickupLocationState extends State<RiderPickupLocation> {
       );
       if (mounted) setState(() => message = result['message'] as String?);
     } catch (error) {
-      if (mounted)
+      if (mounted) {
         setState(
           () => message = error.toString().replaceFirst('Exception: ', ''),
         );
+      }
     } finally {
       if (mounted) setState(() => busy = false);
     }

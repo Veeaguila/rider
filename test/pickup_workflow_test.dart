@@ -139,16 +139,19 @@ void main() {
       tokens: MemoryTokens(),
       client: MockClient((request) async {
         final path = request.url.path;
-        if (path.endsWith('/partner/profile'))
+        if (path.endsWith('/partner/profile')) {
           return http.Response(jsonEncode({'data': readyProfile()}), 200);
-        if (path.endsWith('/presence'))
+        }
+        if (path.endsWith('/presence')) {
           return http.Response(
             '{"data":{"presence":"Unknown","is_current_session":false}}',
             200,
           );
-        if (path.endsWith('/available'))
+        }
+        if (path.endsWith('/available')) {
           return http.Response('{"data":[]}', 200);
-        if (path.endsWith('/mine'))
+        }
+        if (path.endsWith('/mine')) {
           return http.Response(
             jsonEncode({
               'data': collected
@@ -167,6 +170,7 @@ void main() {
             }),
             200,
           );
+        }
         posts.add(path);
         if (path.endsWith('/42/acknowledge')) {
           acknowledged = true;

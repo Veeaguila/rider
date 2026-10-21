@@ -24,14 +24,16 @@ void main() {
         tokens: MemoryTokens(),
         client: MockClient((request) async {
           final path = request.url.path;
-          if (path.endsWith('/partner/profile'))
+          if (path.endsWith('/partner/profile')) {
             return http.Response(jsonEncode({'data': readyProfile()}), 200);
-          if (path.endsWith('/presence'))
+          }
+          if (path.endsWith('/presence')) {
             return http.Response(
               '{"data":{"presence":"Unknown","is_current_session":false}}',
               200,
             );
-          if (request.method == 'GET')
+          }
+          if (request.method == 'GET') {
             return http.Response(
               jsonEncode({
                 'data': [
@@ -50,6 +52,7 @@ void main() {
               }),
               200,
             );
+          }
           writes.add(path);
           if (path.endsWith('/fail')) {
             attempts++;
@@ -105,8 +108,9 @@ void main() {
         tokens: MemoryTokens(),
         client: MockClient((request) async {
           final path = request.url.path;
-          if (path.endsWith('/partner/profile'))
+          if (path.endsWith('/partner/profile')) {
             return http.Response(jsonEncode({'data': readyProfile()}), 200);
+          }
           if (request.method == 'POST') {
             writes.add(path);
             expect(jsonDecode(request.body), {'physical_confirmation': true});

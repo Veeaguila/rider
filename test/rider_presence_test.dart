@@ -17,15 +17,17 @@ void main() {
       final session = RiderSession(
         tokens: MemoryTokens(),
         client: MockClient((request) async {
-          if (request.url.path.endsWith('/partner/profile'))
+          if (request.url.path.endsWith('/partner/profile')) {
             return http.Response(jsonEncode({'data': readyProfile()}), 200);
-          if (request.method == 'GET')
+          }
+          if (request.method == 'GET') {
             return http.Response(
               jsonEncode({
                 'data': {'presence': 'Unknown', 'is_current_session': false},
               }),
               200,
             );
+          }
           final action = jsonDecode(request.body)['action'] as String;
           actions.add(action);
           return http.Response(
@@ -71,20 +73,22 @@ void main() {
       final session = RiderSession(
         tokens: MemoryTokens(),
         client: MockClient((request) async {
-          if (request.url.path.endsWith('/partner/profile'))
+          if (request.url.path.endsWith('/partner/profile')) {
             return http.Response(
               jsonEncode({
                 'data': readyProfile({'is_active': !suspended}),
               }),
               200,
             );
-          if (request.method == 'GET')
+          }
+          if (request.method == 'GET') {
             return http.Response(
               jsonEncode({
                 'data': {'presence': 'Unknown'},
               }),
               200,
             );
+          }
           final action = jsonDecode(request.body)['action'] as String;
           actions.add(action);
           return http.Response(

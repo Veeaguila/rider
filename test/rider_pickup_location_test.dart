@@ -61,8 +61,9 @@ void main() {
       final session = RiderSession(
         tokens: MemoryTokens(),
         client: MockClient((request) async {
-          if (request.url.path.endsWith('/partner/profile'))
+          if (request.url.path.endsWith('/partner/profile')) {
             return http.Response(jsonEncode({'data': readyProfile()}), 200);
+          }
           uploads.add(request.method);
           return http.Response(jsonEncode({'message': 'Saved'}), 200);
         }),
@@ -104,8 +105,9 @@ void main() {
       final session = RiderSession(
         tokens: MemoryTokens(),
         client: MockClient((request) async {
-          if (request.url.path.endsWith('/partner/profile'))
+          if (request.url.path.endsWith('/partner/profile')) {
             return http.Response(jsonEncode({'data': readyProfile()}), 200);
+          }
           uploads.add(request);
           return http.Response(
             jsonEncode({

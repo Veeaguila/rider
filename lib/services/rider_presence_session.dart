@@ -104,8 +104,9 @@ class RiderPresenceSession extends ChangeNotifier with WidgetsBindingObserver {
 
   void _schedule() {
     _timer?.cancel();
-    if (_wantedOnline && _listeners > 0)
+    if (_wantedOnline && _listeners > 0) {
       _timer = Timer.periodic(interval, (_) => _heartbeat());
+    }
   }
 
   Future<void> _heartbeat() async {
@@ -149,7 +150,7 @@ class RiderPresenceSession extends ChangeNotifier with WidgetsBindingObserver {
         state == AppLifecycleState.detached) {
       _timer?.cancel();
       // Expiry also handles app termination/network loss when this best-effort message cannot arrive.
-      if (_wantedOnline)
+      if (_wantedOnline) {
         unawaited(
           RiderPortalApi(session)
               .request(
@@ -160,13 +161,15 @@ class RiderPresenceSession extends ChangeNotifier with WidgetsBindingObserver {
               )
               .catchError((_) => <String, dynamic>{}),
         );
+      }
     }
   }
 
   String _parse(Map data) {
     final value = data['presence'];
-    if (!['Online', 'Offline', 'Unknown'].contains(value))
+    if (!['Online', 'Offline', 'Unknown'].contains(value)) {
       throw const FormatException('Invalid presence response.');
+    }
     return value as String;
   }
 }
