@@ -24,6 +24,10 @@ class RiderColors {
 
   static const Color redBadge = Color(0xFFFEE2E2);
   static const Color redBadgeText = Color(0xFF991B1B);
+
+  // Standard semantic colors
+  static const Color success = Color(0xFF059669);
+  static const Color danger = Color(0xFFDC2626);
 }
 
 class RiderTheme {

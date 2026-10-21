@@ -147,7 +147,7 @@ class _LoginPageState extends State<LoginPage> {
                       "See today's pickups and deliveries, and track your earnings.",
                       style: TextStyle(
                         fontSize: 15,
-                        color: Colors.white.withOpacity(0.9),
+                        color: Colors.white.withValues(alpha: 0.9),
                         height: 1.35,
                       ),
                     ),
@@ -172,7 +172,7 @@ class _LoginPageState extends State<LoginPage> {
                           border: Border.all(color: RiderColors.border),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.04),
+                              color: Colors.black.withValues(alpha: 0.04),
                               blurRadius: 16,
                               offset: const Offset(0, 8),
                             ),
