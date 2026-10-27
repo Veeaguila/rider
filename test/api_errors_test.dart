@@ -63,8 +63,8 @@ void main() {
         'rider@example.test',
       );
       await tester.enterText(find.byType(TextFormField).at(1), 'test-password');
-      await tester.ensureVisible(find.text('Sign in'));
-      await tester.tap(find.text('Sign in'));
+      await tester.ensureVisible(find.text('Log in'));
+      await tester.tap(find.text('Log in'));
       await tester.pumpAndSettle();
       expect(find.textContaining('private database'), findsNothing);
       expect(find.textContaining('could not complete'), findsOneWidget);

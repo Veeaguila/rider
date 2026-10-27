@@ -83,7 +83,7 @@ class _RiderPresenceControlState extends State<RiderPresenceControl> {
           const Text(
             'Online is refreshed while this app is active. A lost connection expires after 90 seconds.',
           ),
-          if (presence.error != null)
+          if (presence.error != null && !presence.error!.contains('no longer available'))
             Text(
               presence.error!,
               style: TextStyle(color: Theme.of(context).colorScheme.error),

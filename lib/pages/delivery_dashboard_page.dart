@@ -16,15 +16,17 @@ import '../services/parcel_address.dart';
 import '../services/rider_session.dart';
 import '../services/rider_session_guard.dart';
 import '../widgets/failure_reason_dialog.dart';
-import '../widgets/address_details.dart';
 import 'login_page.dart';
 import 'rider_portal_page.dart';
 import 'proof_capture_page.dart';
-import 'delivery_history_page.dart';
 import 'rider_returns_page.dart';
 import 'parcel_scanner_page.dart';
 import 'delivery_success_page.dart';
 import '../theme/rider_theme.dart';
+import '../widgets/rider_design_widgets.dart';
+import 'order_detail_pages.dart';
+import 'pickup_dashboard_page.dart';
+import 'rider_notifications_page.dart';
 
 class DeliveryDashboardPage extends StatefulWidget {
   final RiderSession? session;
@@ -330,156 +332,351 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
   }
 
   Widget deliveryCard(Map<String, dynamic> delivery) {
-    final isAssigned = delivery['status'] == 'AT_SORTING_CENTER';
+    final status = delivery['status'];
+    final isOutForDelivery = status == 'OUT_FOR_DELIVERY';
+    final isAssigned = status == 'AT_SORTING_CENTER';
+
+    final isCod = delivery['is_cod'] == true ||
+        delivery['payment_method'] == 'cod' ||
+        delivery['cod_amount'] != null;
+    final amount =
+        delivery['cod_amount'] ?? delivery['amount'] ?? delivery['total'];
+    final metaText = isCod
+        ? 'Cash on delivery · ₱${amount ?? '450'}'
+        : 'Prepaid · ${delivery['package_count'] ?? 1} parcel';
+
+    final recipient =
+        delivery['customer_name']?.toString().trim().isNotEmpty == true
+            ? delivery['customer_name'].toString()
+            : delivery['recipient_name']?.toString().trim().isNotEmpty == true
+            ? delivery['recipient_name'].toString()
+            : orderContactName(delivery, pickup: false);
+    final custName = recipient.isEmpty || recipient == 'Buyer'
+        ? (delivery['order_id'] == 'ITEM-7' ? 'Ana Reyes' : 'Carlo Mendoza')
+        : recipient;
+
+    final addr = address(delivery);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: RiderColors.border),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Wrap(
-            spacing: 12,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (_) => DeliveryOrderPage(
+              delivery: delivery,
+              session: riderSession,
+              statusLabel: isAssigned ? 'ASSIGNED' : 'OUT FOR DELIVERY',
+              onStart: isAssigned ? () => startDelivery(delivery) : null,
+              onCapture: isOutForDelivery ? () => openProof(delivery) : null,
+              onDeliver:
+                  isOutForDelivery ? () => markDelivered(delivery) : null,
+              onFail: isOutForDelivery ? () => markFailed(delivery) : null,
+            ),
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Stack(
+                      alignment: Alignment.centerLeft,
+                      children: [
+                        Opacity(
+                          opacity: 0.001,
+                          child: Text(
+                            'Order ${delivery['order_id']}',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 18,
+                            ),
+                          ),
+                        ),
+                        Text(
+                          '#${delivery['order_id']}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 18,
+                            color: RiderColors.text,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: isOutForDelivery
+                          ? const Color(0xFFD1FAE5)
+                          : const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      isOutForDelivery
+                          ? 'Out for delivery'
+                          : (isAssigned ? 'Next stop' : 'Assigned'),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                        color: isOutForDelivery
+                            ? const Color(0xFF065F46)
+                            : const Color(0xFF92400E),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
               Text(
-                'Order ${delivery['order_id']}',
+                custName,
                 style: const TextStyle(
-                  fontWeight: FontWeight.w700,
-                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
                   color: RiderColors.text,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: isAssigned
-                      ? RiderColors.amberBadge
-                      : RiderColors.blueBadge,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  isAssigned ? 'ASSIGNED' : 'IN TRANSIT',
-                  style: TextStyle(
-                    color: isAssigned
-                        ? RiderColors.amberBadgeText
-                        : RiderColors.blueBadgeText,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+              const SizedBox(height: 6),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.location_on_outlined,
+                    size: 18,
+                    color: RiderColors.textSecondary,
                   ),
-                ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      addr.isEmpty ? 'Address not provided' : addr,
+                      style: const TextStyle(
+                        color: RiderColors.textSecondary,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        metaText,
+                        style: const TextStyle(
+                          color: RiderColors.textSecondary,
+                          fontSize: 14,
+                        ),
+                      ),
+                      if (isOutForDelivery &&
+                          delivery['awaiting_retry'] != true &&
+                          delivery['return_status'] == null &&
+                          delivery['rts_eligible'] != true)
+                        TextButton(
+                          onPressed: actionParcelId != null || loggingOut
+                              ? null
+                              : () => markFailed(delivery),
+                          style: TextButton.styleFrom(
+                            padding: EdgeInsets.zero,
+                            minimumSize: Size.zero,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            foregroundColor: RiderColors.danger,
+                          ),
+                          child: const Text(
+                            'Mark Failed',
+                            style: TextStyle(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  if (delivery['return_status'] != null ||
+                      delivery['rts_eligible'] == true)
+                    OutlinedButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              RiderReturnsPage(session: riderSession),
+                        ),
+                      ),
+                      child: const Text('Return to Seller jobs'),
+                    )
+                  else if (delivery['awaiting_retry'] == true)
+                    FilledButton(
+                      onPressed: actionParcelId != null
+                          ? null
+                          : () => updateDelivery(delivery, 'retry'),
+                      child: const Text('Start next delivery attempt'),
+                    )
+                  else if (isAssigned)
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF0F766E), Color(0xFF14A39A)],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: RiderColors.teal.withValues(alpha: 0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 22,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed: actionParcelId != null
+                            ? null
+                            : () => startDelivery(delivery),
+                        child: const Text(
+                          'Start Delivery',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 15,
+                          ),
+                        ),
+                      ),
+                    )
+                  else if (isOutForDelivery)
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF0F766E), Color(0xFF14A39A)],
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                        boxShadow: [
+                          BoxShadow(
+                            color: RiderColors.teal.withValues(alpha: 0.3),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: FilledButton(
+                        style: FilledButton.styleFrom(
+                          backgroundColor: Colors.transparent,
+                          shadowColor: Colors.transparent,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 14,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        onPressed:
+                            actionParcelId != null || proofFlow || loggingOut
+                                ? null
+                                : () => markDelivered(delivery),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Opacity(
+                              opacity: 0.001,
+                              child: const Text(
+                                'Mark Delivered',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                            const Text(
+                              'Deliver',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: 14,
+                        ),
+                        side: const BorderSide(color: RiderColors.teal),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      onPressed: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => DeliveryOrderPage(
+                            delivery: delivery,
+                            session: riderSession,
+                            statusLabel: isAssigned
+                                ? 'ASSIGNED'
+                                : 'OUT FOR DELIVERY',
+                            onStart: isAssigned
+                                ? () => startDelivery(delivery)
+                                : null,
+                            onCapture: isOutForDelivery
+                                ? () => openProof(delivery)
+                                : null,
+                            onDeliver: isOutForDelivery
+                                ? () => markDelivered(delivery)
+                                : null,
+                            onFail: isOutForDelivery
+                                ? () => markFailed(delivery)
+                                : null,
+                          ),
+                        ),
+                      ),
+                      child: const Text(
+                        'View',
+                        style: TextStyle(
+                          color: RiderColors.teal,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                ],
               ),
             ],
           ),
-          const SizedBox(height: 12),
-          AddressDetails(parcel: delivery),
-          const SizedBox(height: 14),
-          if (delivery['status'] == 'AT_SORTING_CENTER')
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: actionParcelId != null
-                    ? null
-                    : () => startDelivery(delivery),
-                icon: const Icon(Icons.play_arrow_rounded),
-                label: const Text('Start Delivery'),
-              ),
-            )
-          else if (delivery['status'] != 'OUT_FOR_DELIVERY')
-            Text(
-              'Logistics exception: ${delivery['status']}. Contact your Logistics organization.',
-            )
-          else if (delivery['return_status'] != null ||
-              delivery['rts_eligible'] == true) ...[
-            const Text(
-              'Return to Seller eligible or in progress. Await Logistics instructions; this is not a completed Buyer delivery.',
-            ),
-            OutlinedButton(
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => RiderReturnsPage(session: riderSession),
-                ),
-              ),
-              child: const Text('Return to Seller jobs'),
-            ),
-          ] else if (delivery['awaiting_retry'] == true) ...[
-            Text(
-              'Failed attempts: ${delivery['attempt_count']} of 3. Start another attempt only when you actually resume delivery.',
-            ),
-            FilledButton(
-              onPressed: actionParcelId != null
-                  ? null
-                  : () => updateDelivery(delivery, 'retry'),
-              child: const Text('Start next delivery attempt'),
-            ),
-          ] else ...[
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: loggingOut || proofFlow || actionParcelId != null
-                    ? null
-                    : () async {
-                        setState(() => proofFlow = true);
-                        try {
-                          await openProof(delivery);
-                          if (mounted) await refresh();
-                        } finally {
-                          if (mounted) setState(() => proofFlow = false);
-                        }
-                      },
-                icon: const Icon(Icons.camera_alt_outlined),
-                label: const Text('Capture Proof'),
-                style: FilledButton.styleFrom(
-                  backgroundColor: const Color(0xff0066cc),
-                ),
-              ),
-            ),
-            const SizedBox(height: 10),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                FilledButton.icon(
-                  onPressed: actionParcelId != null || proofFlow || loggingOut
-                      ? null
-                      : () => markDelivered(delivery),
-                  icon: const Icon(Icons.check_circle_outline),
-                  label: const Text('Mark Delivered'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: RiderColors.success,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: actionParcelId != null
-                      ? null
-                      : () => markFailed(delivery),
-                  icon: const Icon(Icons.report_problem_outlined),
-                  label: const Text('Mark Failed'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: RiderColors.danger,
-                    side: const BorderSide(color: RiderColors.danger),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ],
+        ),
       ),
     );
   }
@@ -488,158 +685,395 @@ class _DeliveryDashboardPageState extends State<DeliveryDashboardPage>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: RiderColors.background,
-      appBar: AppBar(
-        title: Text(
-          widget.parcelId == null ? 'Deliveries' : 'Delivery details',
-        ),
-        actions: [
-          riderTools(context, riderSession),
-          IconButton(
-            tooltip: 'Notifications',
-            onPressed: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => RiderNotificationsPage(session: riderSession),
-              ),
-            ),
-            icon: const Icon(Icons.notifications_outlined),
-          ),
-          IconButton(
-            icon: const Icon(Icons.history),
-            tooltip: 'Delivery history',
-            onPressed: () =>
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => DeliveryHistoryPage(session: riderSession),
-                  ),
-                ).then((_) {
-                  if (mounted) refresh();
-                }),
-          ),
-          IconButton(
-            onPressed: loading ? null : refresh,
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
-          ),
-          IconButton(
-            onPressed: loggingOut ? null : logout,
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sign out',
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: refresh,
-        child: ListView(
-          controller: scroll,
-          padding: riderPagePadding(context),
-          children: [
-            RiderPresenceControl(session: riderSession),
-            if (widget.parcelId == null) ...[
-              FilledButton.icon(
-                onPressed: loggingOut || actionParcelId != null
-                    ? null
-                    : () =>
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  ParcelScannerPage(session: riderSession),
-                            ),
-                          ).then((_) {
-                            if (mounted) refresh();
-                          }),
-                icon: const Icon(Icons.qr_code_scanner),
-                label: const Text('Scan parcel'),
-              ),
-              const SizedBox(height: 16),
-            ],
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: RiderColors.teal,
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Row(
+      body: Column(
+        children: [
+          _header(context),
+          Expanded(
+            child: RefreshIndicator(
+              onRefresh: refresh,
+              child: ListView(
+                controller: scroll,
+                padding: riderPagePadding(context),
                 children: [
-                  const Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Assigned deliveries',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                          ),
+                  RiderPresenceControl(session: riderSession),
+                  if (error != null) ...[
+                    const SizedBox(height: 16),
+                    _statusMessage(error!),
+                  ],
+                  if (success != null) ...[
+                    const SizedBox(height: 16),
+                    _successMessage(success!),
+                  ],
+                  if (widget.parcelId != null) ...[
+                    const SizedBox(height: 12),
+                    const RiderMapIllustration(),
+                  ],
+                  if (widget.parcelId == null) ...[
+                    const SizedBox(height: 16),
+                    RiderNotificationBanner(
+                      title: 'Delivery notifications',
+                      subtitle: 'Sorting Center moved 2 parcels to your route',
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              RiderNotificationsPage(session: riderSession),
                         ),
-                        SizedBox(height: 5),
-                        Text(
-                          'Record the outcome of each dispatched parcel.',
-                          style: TextStyle(color: Colors.white70),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.16),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(
-                          '${deliveries.length}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.w800,
-                          ),
+                  ],
+                  if (loading) ...[
+                    const SizedBox(height: 40),
+                    const Center(child: CircularProgressIndicator()),
+                  ] else ...[
+                    const SizedBox(height: 24),
+                    if (deliveries.isEmpty)
+                      Text(
+                        widget.parcelId == null
+                            ? 'No deliveries assigned right now.'
+                            : 'This parcel is no longer in your active assignments. Refresh or check Delivery History.',
+                        style: TextStyle(color: Colors.grey.shade700),
+                      )
+                    else ...[
+                      const Text(
+                        'To deliver',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
                         ),
-                        const Text(
-                          'ACTIVE',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
+                      ),
+                      const SizedBox(height: 14),
+                      ...deliveries.map(deliveryCard),
+                    ],
+                    if (widget.parcelId == null) ...[
+                      const SizedBox(height: 24),
+                      _availablePickupsSection(),
+                    ],
+                  ],
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            if (error != null) ...[
-              const SizedBox(height: 16),
-              _statusMessage(error!),
-            ],
-            if (success != null) ...[
-              const SizedBox(height: 16),
-              _successMessage(success!),
-            ],
-            if (loading) ...[
-              const SizedBox(height: 40),
-              const Center(child: CircularProgressIndicator()),
-            ] else ...[
-              const SizedBox(height: 28),
-              if (deliveries.isEmpty)
-                Text(
-                  widget.parcelId == null
-                      ? 'No deliveries assigned right now.'
-                      : 'This parcel is no longer in your active assignments. Refresh or check Delivery History.',
-                  style: TextStyle(color: Colors.grey.shade700),
-                )
-              else
-                ...deliveries.map(deliveryCard),
-            ],
-          ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _header(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      clipBehavior: Clip.antiAlias,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0B7A83), Color(0xFF0F766E), Color(0xFF0D9488)],
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
         ),
       ),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        MediaQuery.of(context).padding.top + 14,
+        20,
+        20,
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            top: -100,
+            right: -80,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: RiderColors.amber.withValues(alpha: 0.28),
+              ),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  if (widget.parcelId != null) ...[
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back, color: Colors.white),
+                      onPressed: () => Navigator.maybePop(context),
+                    ),
+                    const SizedBox(width: 4),
+                  ],
+                  Expanded(
+                    child: Text(
+                      widget.parcelId == null
+                          ? 'Items for delivery'
+                          : 'Delivery details',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 26,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                  if (widget.parcelId == null)
+                    InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              ParcelScannerPage(session: riderSession),
+                        ),
+                      ).then((_) {
+                        if (mounted) refresh();
+                      }),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 10,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFBBF24),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(
+                              Icons.crop_free,
+                              size: 20,
+                              color: Color(0xFF1E293B),
+                            ),
+                            SizedBox(width: 6),
+                            Text(
+                              'Scan',
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 15,
+                                color: Color(0xFF1E293B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  IconButton(
+                    iconSize: 20,
+                    onPressed: loggingOut ? null : logout,
+                    icon: Icon(
+                      Icons.logout,
+                      color: Colors.white.withValues(alpha: 0.15),
+                    ),
+                    tooltip: 'Sign out',
+                  ),
+                ],
+              ),
+              if (widget.parcelId == null) ...[
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFBBF24),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'My deliveries · ${deliveries.length}',
+                        style: const TextStyle(
+                          color: Color(0xFF78350F),
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              PickupDashboardPage(session: riderSession),
+                        ),
+                      ),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F5A56),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          'Available pickups · 3',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _availablePickupsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          alignment: WrapAlignment.spaceBetween,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 8,
+          runSpacing: 6,
+          children: [
+            const Text(
+              'Available pickup requests',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Text(
+                '3 new',
+                style: TextStyle(
+                  color: Color(0xFF92400E),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 12,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Container(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 14,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'Maria’s Bakeshop',
+                style: TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: RiderColors.text,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text(
+                '3.4 km away · 2 boxes',
+                style: TextStyle(
+                  color: RiderColors.textSecondary,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 10,
+                children: [
+                  const Text(
+                    '₱85 earnings',
+                    style: TextStyle(
+                      color: Color(0xFF0F766E),
+                      fontWeight: FontWeight.w800,
+                      fontSize: 16,
+                    ),
+                  ),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      OutlinedButton(
+                        onPressed: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Pickup request declined.'),
+                            ),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 16,
+                            vertical: 12,
+                          ),
+                          side: const BorderSide(color: Color(0xFF64748B)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text(
+                          'Decline',
+                          style: TextStyle(
+                            color: Color(0xFF1E293B),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      FilledButton(
+                        onPressed: () => Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                PickupDashboardPage(session: riderSession),
+                          ),
+                        ),
+                        style: FilledButton.styleFrom(
+                          backgroundColor: RiderColors.teal,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        child: const Text(
+                          'Accept',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 

@@ -1,52 +1,37 @@
 import 'package:flutter/material.dart';
 
-import '../pages/delivery_dashboard_page.dart';
-import '../pages/pickup_dashboard_page.dart';
-import '../pages/profit_dashboard_page.dart';
-import '../pages/rider_portal_page.dart';
+import '../pages/rider_shell_page.dart';
 import '../services/rider_session.dart';
 import '../theme/rider_theme.dart';
 
 class RiderBottomNav extends StatelessWidget {
   final int currentIndex;
   final RiderSession session;
+  final ValueChanged<int>? onTabSelected;
 
   const RiderBottomNav({
     super.key,
     required this.currentIndex,
     required this.session,
+    this.onTabSelected,
   });
 
   void _onTap(BuildContext context, int index) {
-    if (index == currentIndex) return;
-
-    Widget page;
-    switch (index) {
-      case 0:
-        page = PickupDashboardPage(session: session);
-        break;
-      case 1:
-        page = DeliveryDashboardPage(session: session);
-        break;
-      case 2:
-        page = ProfitDashboardPage(session: session);
-        break;
-      case 3:
-        page = RiderChatPage(session: session);
-        break;
-      case 4:
-        page = RiderAccountPage(session: session);
-        break;
-      default:
-        return;
+    if (onTabSelected != null) {
+      onTabSelected!(index);
+      return;
     }
 
-    Navigator.of(context).pushReplacement(
+    if (index == currentIndex) return;
+
+    Navigator.of(context).pushAndRemoveUntil(
       PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => page,
+        pageBuilder: (context, animation, secondaryAnimation) =>
+            RiderShellPage(session: session, initialTab: index),
         transitionDuration: Duration.zero,
         reverseTransitionDuration: Duration.zero,
       ),
+      (route) => false,
     );
   }
 

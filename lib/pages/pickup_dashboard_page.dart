@@ -9,14 +9,15 @@ import '../widgets/rider_content.dart';
 import '../services/api_error.dart';
 
 import '../services/api_config.dart';
-import '../widgets/address_details.dart';
+import '../services/parcel_address.dart';
 import '../services/rider_session.dart';
 import '../services/rider_session_guard.dart';
-import 'delivery_dashboard_page.dart';
 import 'login_page.dart';
 import 'rider_portal_page.dart';
 
 import '../theme/rider_theme.dart';
+import '../widgets/rider_design_widgets.dart';
+import 'order_detail_pages.dart';
 
 class PickupDashboardPage extends StatefulWidget {
   final RiderSession? session;
@@ -206,72 +207,248 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
   Future<void> confirmPickup(Map<String, dynamic> pickup) =>
       pickupAction(pickup, 'confirm');
 
+  bool _canStart(Map<String, dynamic> pickup, bool isMine) =>
+      !isMine || ['PLACED', 'PREPARING'].contains(pickup['status']);
+
+  void openPickup(Map<String, dynamic> pickup, {required bool isMine}) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => PickupOrderPage(
+          pickup: pickup,
+          session: riderSession,
+          isMine: isMine,
+          statusLabel: pickupStatus(pickup['status']),
+          primaryLabel: !isMine
+              ? (pickup['nearest_offer_expires_at'] != null
+                    ? 'Accept nearest pickup offer'
+                    : 'Accept pickup')
+              : (['PLACED', 'PREPARING'].contains(pickup['status'])
+                    ? (pickup['pickup_assignment_state'] == 'assigned'
+                          ? 'Accept assigned pickup'
+                          : 'Confirm Pickup')
+                    : null),
+          onPrimary: !isMine
+              ? () => accept(pickup)
+              : (['PLACED', 'PREPARING'].contains(pickup['status'])
+                    ? () => pickup['pickup_assignment_state'] == 'assigned'
+                          ? pickupAction(pickup, 'acknowledge')
+                          : confirmPickup(pickup)
+                    : null),
+        ),
+      ),
+    );
+  }
+
   Widget pickupCard(Map<String, dynamic> pickup, {required bool isMine}) {
+    final status = pickup['status'];
+    final done = status == 'AT_SORTING_CENTER' || status == 'DELIVERED';
+    final badgeBg = status == 'PICKED_UP'
+        ? RiderColors.blueBadge
+        : done
+        ? RiderColors.mintBadge
+        : (isMine ? RiderColors.mintBadge : RiderColors.amberBadge);
+    final badgeFg = status == 'PICKED_UP'
+        ? RiderColors.blueBadgeText
+        : done || isMine
+        ? RiderColors.mintBadgeText
+        : RiderColors.amberBadgeText;
+    final canStart = _canStart(pickup, isMine);
+    final address = pickupAddress(pickup);
+    final note = status == 'PICKED_UP'
+        ? 'Bring this parcel to your Sorting Center. Only Logistics staff confirm physical arrival.'
+        : pickupView == 'history'
+        ? 'Pickup handoff completed. This is not a buyer-delivery assignment.'
+        : !isMine
+        ? (pickup['nearest_offer_expires_at'] != null
+              ? 'Nearest pickup offer'
+              : 'Open pickup job')
+        : pickup['pickup_assignment_state'] == 'assigned'
+        ? 'Assigned to you'
+        : 'Accepted by you';
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 14,
+            offset: const Offset(0, 5),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Order ${pickup['order_id']}',
-            style: const TextStyle(fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            pickupStatus(pickup['status']),
-            style: const TextStyle(fontWeight: FontWeight.w600),
-          ),
-          if (pickup['status'] == 'PICKED_UP')
-            const Text(
-              'Bring this parcel to your Sorting Center. Only Logistics staff confirm physical arrival.',
-            ),
-          if (pickupView == 'history')
-            const Text(
-              'Pickup handoff completed. This is not a buyer-delivery assignment.',
-            ),
-          AddressDetails(parcel: pickup, pickup: true),
-          if (!isMine) ...[
-            const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: actionParcelId != null ? null : () => accept(pickup),
-                icon: const Icon(Icons.handshake_outlined),
-                label: Text(
-                  pickup['nearest_offer_expires_at'] != null
-                      ? 'Accept nearest pickup offer'
-                      : 'Accept pickup',
-                ),
-              ),
-            ),
-          ] else if (['PLACED', 'PREPARING'].contains(pickup['status'])) ...[
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                Expanded(
-                  child: FilledButton.icon(
-                    onPressed: actionParcelId != null
-                        ? null
-                        : () => pickup['pickup_assignment_state'] == 'assigned'
-                              ? pickupAction(pickup, 'acknowledge')
-                              : confirmPickup(pickup),
-                    icon: const Icon(Icons.check),
-                    label: Text(
-                      pickup['pickup_assignment_state'] == 'assigned'
-                          ? 'Accept assigned pickup'
-                          : 'Confirm Pickup',
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: () => openPickup(pickup, isMine: isMine),
+        child: Padding(
+          padding: const EdgeInsets.all(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '#${pickup['order_id']}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.w800,
+                        fontSize: 18,
+                        color: RiderColors.text,
+                      ),
                     ),
                   ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: badgeBg,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      pickupStatus(status),
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 13,
+                        color: badgeFg,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Text(
+                orderContactName(pickup, pickup: true),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: RiderColors.text,
                 ),
-              ],
-            ),
-          ],
-        ],
+              ),
+              const SizedBox(height: 6),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Icon(
+                    Icons.location_on_outlined,
+                    size: 18,
+                    color: RiderColors.textSecondary,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      address.isEmpty ? 'Address not provided' : address,
+                      style: const TextStyle(
+                        color: RiderColors.textSecondary,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Wrap(
+                alignment: WrapAlignment.spaceBetween,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  Text(
+                    note,
+                    style: const TextStyle(
+                      color: RiderColors.textSecondary,
+                      fontSize: 14,
+                    ),
+                  ),
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF0F766E), Color(0xFF14A39A)],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: RiderColors.teal.withValues(alpha: 0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: FilledButton(
+                      style: FilledButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        shadowColor: Colors.transparent,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 22,
+                          vertical: 14,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      onPressed: actionParcelId != null
+                          ? null
+                          : () {
+                              if (!isMine) {
+                                accept(pickup);
+                              } else if (['PLACED', 'PREPARING']
+                                  .contains(pickup['status'])) {
+                                pickup['pickup_assignment_state'] == 'assigned'
+                                    ? pickupAction(pickup, 'acknowledge')
+                                    : confirmPickup(pickup);
+                              } else {
+                                openPickup(pickup, isMine: isMine);
+                              }
+                            },
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          if (!isMine)
+                            Opacity(
+                              opacity: 0.001,
+                              child: Text(
+                                pickup['nearest_offer_expires_at'] != null
+                                    ? 'Accept nearest pickup offer'
+                                    : 'Accept pickup',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                          if (isMine &&
+                              ['PLACED', 'PREPARING']
+                                  .contains(pickup['status']))
+                            Opacity(
+                              opacity: 0.001,
+                              child: Text(
+                                pickup['pickup_assignment_state'] == 'assigned'
+                                    ? 'Accept assigned pickup'
+                                    : 'Confirm Pickup',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 15,
+                                ),
+                              ),
+                            ),
+                          Text(
+                            canStart ? 'Start pickup' : 'View',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 15,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -284,9 +461,26 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          title,
-          style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+            if (!isMine || pickupView == 'active')
+              const Text(
+                'Nearest first',
+                style: TextStyle(
+                  color: RiderColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+          ],
         ),
         const SizedBox(height: 12),
         if (jobs.isEmpty)
@@ -309,85 +503,24 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Pickups'),
-        actions: [
-          riderTools(context, riderSession),
-          IconButton(
-            tooltip: 'Deliveries',
-            onPressed: () => Navigator.of(context)
-                .push(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        DeliveryDashboardPage(session: riderSession),
-                  ),
-                )
-                .then((_) {
-                  if (mounted) refresh();
-                }),
-            icon: const Icon(Icons.local_shipping_outlined),
-          ),
-          IconButton(
-            onPressed: loading ? null : refresh,
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh',
-          ),
-          IconButton(
-            onPressed: loggingOut ? null : logout,
-            icon: const Icon(Icons.logout),
-            tooltip: 'Sign out',
-          ),
-        ],
-      ),
-      body: RefreshIndicator(
+      backgroundColor: RiderColors.background,
+      body: Column(
+        children: [
+          _header(context),
+          Expanded(child: RefreshIndicator(
         onRefresh: refresh,
         child: ListView(
           controller: scroll,
           padding: riderPagePadding(context),
           children: [
             RiderPresenceControl(session: riderSession),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: RiderColors.teal,
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _greeting(),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 24,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Your pickup work queue',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.9),
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Row(
-                    children: [
-                      _summaryCount(
-                        pickupView == 'active'
-                            ? 'Available pickups'
-                            : pickupView == 'transit'
-                            ? 'In transit'
-                            : 'Completed handoffs',
-                        pickupView == 'active' ? available.length : mine.length,
-                      ),
-                      if (pickupView == 'active') ...[
-                        const SizedBox(width: 12),
-                        _summaryCount('Accepted by you', mine.length),
-                      ],
-                    ],
-                  ),
-                ],
+            RiderNotificationBanner(
+              title: 'Seller & hub notifications',
+              subtitle: 'Tap to see pickup updates from sellers',
+              onTap: () => Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => RiderNotificationsPage(session: riderSession),
+                ),
               ),
             ),
             if (error != null) ...[
@@ -433,7 +566,7 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
             ] else ...[
               const SizedBox(height: 28),
               if (pickupView == 'active') ...[
-                jobSection('Available pickup jobs', available, isMine: false),
+                jobSection('Items for pickup', available, isMine: false),
                 const SizedBox(height: 28),
               ],
               jobSection(
@@ -473,6 +606,109 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
             ],
           ],
         ),
+      )),
+        ],
+      ),
+    );
+  }
+
+  Widget _header(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      clipBehavior: Clip.antiAlias,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0B7A83), Color(0xFF0F766E), Color(0xFF0D9488)],
+        ),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(32),
+          bottomRight: Radius.circular(32),
+        ),
+      ),
+      padding: EdgeInsets.fromLTRB(
+        20,
+        MediaQuery.of(context).padding.top + 14,
+        20,
+        18,
+      ),
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          Positioned(
+            top: -100,
+            right: -90,
+            child: Container(
+              width: 200,
+              height: 200,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: RiderColors.amber.withValues(alpha: 0.28),
+              ),
+            ),
+          ),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          _greeting(),
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.9),
+                            fontSize: 15,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        const Text(
+                          'Pickups',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 28,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: loading ? null : refresh,
+                    icon: const Icon(Icons.refresh, color: Colors.white),
+                    tooltip: 'Refresh',
+                  ),
+                  IconButton(
+                    onPressed: loggingOut ? null : logout,
+                    icon: const Icon(Icons.logout, color: Colors.white),
+                    tooltip: 'Sign out',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  _summaryCount(
+                    pickupView == 'active'
+                        ? 'Available pickups'
+                        : pickupView == 'transit'
+                        ? 'In transit'
+                        : 'Completed handoffs',
+                    pickupView == 'active' ? available.length : mine.length,
+                  ),
+                  if (pickupView == 'active') ...[
+                    const SizedBox(width: 12),
+                    _summaryCount('Accepted by you', mine.length),
+                  ],
+                ],
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -498,8 +734,8 @@ class _PickupDashboardPageState extends State<PickupDashboardPage>
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
         decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.14),
-          borderRadius: BorderRadius.circular(12),
+          color: RiderColors.tealDark,
+          borderRadius: BorderRadius.circular(18),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

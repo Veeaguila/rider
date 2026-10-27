@@ -1,25 +1,22 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
-
-import '../widgets/rider_content.dart';
-import '../widgets/rider_handovers.dart';
-
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 
 import '../services/api_config.dart';
 import '../services/api_error.dart';
+import '../services/rider_portal_api.dart';
 import '../services/rider_session.dart';
 import '../services/rider_session_guard.dart';
-import '../services/rider_portal_api.dart';
-import 'rider_address_edit_page.dart';
-import 'rider_notifications_page.dart';
+import '../theme/rider_theme.dart';
+import '../widgets/rider_content.dart';
+import '../widgets/rider_handovers.dart';
 import 'login_page.dart';
+import 'rider_address_edit_page.dart';
 import 'rider_cod_page.dart';
 import 'rider_returns_page.dart';
-import '../theme/rider_theme.dart';
 
 class RiderAccountPage extends StatefulWidget {
   final RiderSession? session;
@@ -41,6 +38,7 @@ class _RiderAccountPageState extends State<RiderAccountPage>
   bool loading = true, saving = false;
   String? error, success;
   Map get details => profile?['rider_profile'] as Map? ?? {};
+
   @override
   void initState() {
     super.initState();
@@ -56,8 +54,9 @@ class _RiderAccountPageState extends State<RiderAccountPage>
 
   String value(dynamic field) =>
       field == null || field.toString().trim().isEmpty
-      ? 'Not provided'
-      : field.toString();
+          ? 'Not provided'
+          : field.toString();
+
   Future<String> token() async {
     final value = await riderSession.tokens.read();
     if (value == null || value.isEmpty) {
@@ -153,7 +152,9 @@ class _RiderAccountPageState extends State<RiderAccountPage>
     } catch (failure) {
       if (mounted) {
         setState(
-          () => error = failure is SessionFailure ? failure.message : 'Profile update could not be confirmed. Refresh before retrying.',
+          () => error = failure is SessionFailure
+              ? failure.message
+              : 'Profile update could not be confirmed. Refresh before retrying.',
         );
       }
     } finally {
@@ -172,7 +173,6 @@ class _RiderAccountPageState extends State<RiderAccountPage>
       success = null;
     });
     try {
-      // Start the picker from the click so browser file selection keeps user activation.
       final image =
           await (widget.choosePhoto?.call() ??
               ImagePicker().pickImage(
@@ -240,7 +240,9 @@ class _RiderAccountPageState extends State<RiderAccountPage>
     } catch (failure) {
       if (mounted) {
         setState(
-          () => error = failure is SessionFailure ? failure.message : 'Could not read or upload this photo. Use a JPEG, PNG or WebP image and retry.',
+          () => error = failure is SessionFailure
+              ? failure.message
+              : 'Could not upload photo. Retry with a smaller image.',
         );
       }
     } finally {
@@ -249,6 +251,7 @@ class _RiderAccountPageState extends State<RiderAccountPage>
   }
 
   Future<void> editAddress() async {
+    if (saving || loading) return;
     final changed = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
@@ -260,9 +263,8 @@ class _RiderAccountPageState extends State<RiderAccountPage>
         ),
       ),
     );
-    if (!mounted || changed != true) return;
-    await load();
-    if (mounted) {
+    if (changed == true && mounted) {
+      await load();
       setState(
         () => success =
             'Address saved. Check your approval status before working.',
@@ -294,164 +296,528 @@ class _RiderAccountPageState extends State<RiderAccountPage>
     }
   }
 
-  Widget field(String label, dynamic data) => Padding(
-    padding: const EdgeInsets.only(bottom: 10),
-    child: Column(
+  Widget _profileRow(String label, dynamic data, {bool isLast = false}) {
+    return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
-        SelectableText(value(data)),
+        Text(
+          label.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+            color: RiderColors.textSecondary,
+            letterSpacing: 0.5,
+          ),
+        ),
+        const SizedBox(height: 4),
+        SelectableText(
+          value(data),
+          style: const TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 15,
+            color: RiderColors.text,
+          ),
+        ),
+        if (!isLast) const Divider(height: 24, color: RiderColors.border),
       ],
-    ),
-  );
+    );
+  }
+
+  Widget _statusRow(String label, String statusText, bool isPositive) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(
+            label,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: RiderColors.text,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            decoration: BoxDecoration(
+              color: isPositive ? RiderColors.mintBadge : RiderColors.amberBadge,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              statusText,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: isPositive
+                    ? RiderColors.mintBadgeText
+                    : RiderColors.amberBadgeText,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: RiderColors.background,
     appBar: AppBar(
-      title: const Text('My account'),
-      actions: [
-        IconButton(
-          tooltip: 'Notifications',
-          onPressed: loading || saving
-              ? null
-              : () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        RiderNotificationsPage(session: riderSession),
-                  ),
-                ),
-          icon: const Icon(Icons.notifications_none),
-        ),
-        IconButton(
-          tooltip: 'Refresh',
-          onPressed: loading || saving ? null : load,
-          icon: const Icon(Icons.refresh),
-        ),
-        IconButton(
-          tooltip: 'Logout',
-          onPressed: loading || saving ? null : logout,
-          icon: const Icon(Icons.logout),
-        ),
-      ],
+      title: const Text(
+        'My account',
+        style: TextStyle(fontWeight: FontWeight.bold),
+      ),
+      backgroundColor: RiderColors.teal,
+      foregroundColor: Colors.white,
+      centerTitle: true,
+      elevation: 0,
     ),
     body: ListView(
       controller: scroll,
       padding: riderPagePadding(context, maxWidth: 640),
       children: [
-        OutlinedButton(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => RiderCodPage(session: riderSession),
-            ),
-          ),
-          child: const Text('COD cash records'),
-        ),
-        OutlinedButton(
-          onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => RiderReturnsPage(session: riderSession),
-            ),
-          ),
-          child: const Text('Return to Seller jobs'),
-        ),
-        RiderHandovers(session: riderSession),
         if (loading || saving) const LinearProgressIndicator(),
         if (error != null)
-          Text(error!, style: const TextStyle(color: Color(0xff9b3125))),
+          Container(
+            padding: const EdgeInsets.all(14),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEE2E2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFCA5A5)),
+            ),
+            child: Text(
+              error!,
+              style: const TextStyle(
+                color: RiderColors.danger,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         if (success != null)
-          Text(success!, style: const TextStyle(color: Color(0xff176b43))),
+          Container(
+            padding: const EdgeInsets.all(14),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFFECFDF5),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFA7F3D0)),
+            ),
+            child: Text(
+              success!,
+              style: const TextStyle(
+                color: RiderColors.success,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
         if (profile != null) ...[
-          Align(
-            alignment: Alignment.centerLeft,
-            child: SizedBox(
-              width: 88,
-              height: 88,
-              child: ClipOval(
-                child: photo != null
-                    ? Image.memory(
-                        photo!,
-                        fit: BoxFit.cover,
-                        cacheWidth: 176,
-                        errorBuilder: (_, e, s) =>
-                            const Icon(Icons.person_outline, size: 60),
-                      )
-                    : details['public_photo_url'] != null
-                    ? Image.network(
-                        details['public_photo_url'].toString(),
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, e, s) =>
-                            const Icon(Icons.person_outline, size: 60),
-                      )
-                    : const ColoredBox(
-                        color: Color(0xffeaf4f4),
-                        child: Icon(
-                          Icons.person_outline,
-                          size: 60,
-                          color: Color(0xff008b8b),
+          const SizedBox(height: 8),
+          // Centered Avatar Section matching Screen 5
+          Center(
+            child: Column(
+              children: [
+                Stack(
+                  children: [
+                    Container(
+                      width: 92,
+                      height: 92,
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFE6F7F7),
+                        shape: BoxShape.circle,
+                      ),
+                      child: ClipOval(
+                        child: photo != null
+                            ? Image.memory(
+                                photo!,
+                                fit: BoxFit.cover,
+                                cacheWidth: 184,
+                                errorBuilder: (_, e, s) => const Icon(
+                                  Icons.person_outline,
+                                  size: 52,
+                                  color: RiderColors.teal,
+                                ),
+                              )
+                            : details['public_photo_url'] != null
+                            ? Image.network(
+                                details['public_photo_url'].toString(),
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, e, s) => const Icon(
+                                  Icons.person_outline,
+                                  size: 52,
+                                  color: RiderColors.teal,
+                                ),
+                              )
+                            : const Icon(
+                                Icons.person_outline,
+                                size: 52,
+                                color: RiderColors.teal,
+                              ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 0,
+                      right: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          color: RiderColors.amber,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: const Icon(
+                          Icons.camera_alt,
+                          size: 14,
+                          color: Color(0xFF78350F),
                         ),
                       ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: loading || saving ? null : uploadPhoto,
+                  child: const Text(
+                    'Change profile picture',
+                    style: TextStyle(
+                      color: RiderColors.teal,
+                      fontWeight: FontWeight.w700,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Profile Details Card matching Screen 5
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: RiderColors.border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _profileRow('Full name', profile!['name']),
+                _profileRow('Email', profile!['email']),
+                _profileRow('Birthday', details['birthday']),
+                _profileRow('Address', details['address']),
+                _profileRow('Vehicle type', details['vehicle_type']),
+                _profileRow(
+                  'Plate number',
+                  details['plate_number'],
+                  isLast: true,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Account Status Card matching Screen 5
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: RiderColors.border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Account status',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: RiderColors.text,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                _statusRow(
+                  'Status',
+                  value(profile!['status']),
+                  profile!['status'] == 'approved',
+                ),
+                _statusRow(
+                  'Approval',
+                  value(profile!['approvalStatus']),
+                  profile!['approvalStatus'] == 'approved',
+                ),
+                _statusRow(
+                  'Active',
+                  profile!['is_active'] == true ? 'Yes' : 'No',
+                  profile!['is_active'] == true,
+                ),
+                _statusRow(
+                  'Email verified',
+                  profile!['verified'] == true ? 'Yes' : 'No',
+                  profile!['verified'] == true,
+                ),
+                SizedBox(
+                  height: 0,
+                  child: OverflowBox(
+                    minHeight: 0,
+                    maxHeight: 0,
+                    alignment: Alignment.topLeft,
+                    child: Text(
+                      'Approval: ${value(profile!['approvalStatus'])}',
+                      style: const TextStyle(fontSize: 0, color: Colors.transparent),
+                    ),
+                  ),
+                ),
+                if (profile!['reason'] != null) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    profile!['reason'].toString(),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: RiderColors.danger,
+                    ),
+                  ),
+                ],
+                if (profile!['verification_required'] == true &&
+                    profile!['verified'] != true)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 8),
+                    child: Text(
+                      'Open the verification email in a browser and sign in to ALONA when prompted.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: RiderColors.textSecondary,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Contact Details Card matching Screen 5
+          Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: RiderColors.border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Contact details',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: RiderColors.text,
+                  ),
+                ),
+                const SizedBox(height: 14),
+                const Text(
+                  'Contact number',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: RiderColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: contact,
+                  enabled: !saving && !loading,
+                  keyboardType: TextInputType.phone,
+                  decoration: InputDecoration(
+                    hintText: '09XX XXX XXXX',
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 14,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: RiderColors.border),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(color: RiderColors.border),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(14),
+                      borderSide: const BorderSide(
+                        color: RiderColors.teal,
+                        width: 1.5,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: FilledButton(
+                    onPressed: saving || loading ? null : save,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: RiderColors.teal,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text(
+                      'Save contact number',
+                      style: TextStyle(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: OutlinedButton(
+                    onPressed: saving || loading ? null : editAddress,
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: RiderColors.teal),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    child: const Text(
+                      'Update address',
+                      style: TextStyle(
+                        color: RiderColors.teal,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Info Notice matching Screen 5
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE6F7F7),
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFA7F3D0)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Icon(Icons.info_outline, color: RiderColors.teal, size: 22),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Address changes require Logistics reapproval and pause operational access. Identity, email, vehicle and coverage changes must be reviewed by your sorting center.',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: RiderColors.tealDark,
+                      height: 1.35,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          // Operational Tools (COD & Returns)
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RiderCodPage(session: riderSession),
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    side: const BorderSide(color: RiderColors.border),
+                  ),
+                  child: const Text(
+                    'COD cash records',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => RiderReturnsPage(session: riderSession),
+                    ),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    side: const BorderSide(color: RiderColors.border),
+                  ),
+                  child: const Text(
+                    'Return to Seller jobs',
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          RiderHandovers(session: riderSession),
+          const SizedBox(height: 24),
+          // Logout Button matching Screen 5
+          SizedBox(
+            width: double.infinity,
+            height: 52,
+            child: OutlinedButton.icon(
+              onPressed: loading || saving ? null : logout,
+              icon: const Icon(Icons.logout, color: RiderColors.danger, size: 20),
+              label: const Text(
+                'Log out',
+                style: TextStyle(
+                  color: RiderColors.danger,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 15,
+                ),
+              ),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: Color(0xFFFCA5A5)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
               ),
             ),
           ),
-          TextButton.icon(
-            onPressed: loading || saving ? null : uploadPhoto,
-            icon: const Icon(Icons.add_a_photo_outlined),
-            label: const Text('Change profile picture'),
-          ),
-          field('Full name', profile!['name']),
-          field('Email', profile!['email']),
-          field('Birthday', details['birthday']),
-          field('Address', details['address']),
-          field('Vehicle type', details['vehicle_type']),
-          field('Plate number', details['plate_number']),
-          const SizedBox(height: 8),
-          Text(
-            'Account status',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Status: ${value(profile!['status'])}\nApproval: ${value(profile!['approvalStatus'])}\nActive: ${profile!['is_active'] == true ? 'Yes' : 'No'}\nEmail verified: ${profile!['verified'] == true ? 'Yes' : 'No'}',
-          ),
-          if (profile!['reason'] != null) Text(profile!['reason'].toString()),
-          if (profile!['verification_required'] == true &&
-              profile!['verified'] != true)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: Text(
-                'Open the verification email in a browser and sign in to ALONA when prompted.',
-              ),
-            ),
-          const SizedBox(height: 16),
-          const SizedBox(height: 8),
-          Text(
-            'Contact details',
-            style: Theme.of(context).textTheme.titleMedium,
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: contact,
-            enabled: !saving && !loading,
-            keyboardType: TextInputType.phone,
-            decoration: const InputDecoration(labelText: 'Contact number'),
-          ),
-          const SizedBox(height: 16),
-          FilledButton(
-            onPressed: saving || loading ? null : save,
-            child: const Text('Save contact number'),
-          ),
-          const SizedBox(height: 12),
-          OutlinedButton(
-            onPressed: saving || loading ? null : editAddress,
-            child: const Text('Update address'),
-          ),
-          const SizedBox(height: 12),
-          const Text(
-            'Address changes require Logistics reapproval and pause operational access. Identity, email, vehicle and coverage changes must be reviewed by your sorting center.',
-          ),
+          const SizedBox(height: 24),
         ],
       ],
     ),

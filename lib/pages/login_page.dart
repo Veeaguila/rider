@@ -6,7 +6,7 @@ import '../services/api_error.dart';
 import '../services/api_config.dart';
 import '../services/rider_session.dart';
 import '../theme/rider_theme.dart';
-import 'pickup_dashboard_page.dart';
+import 'rider_shell_page.dart';
 import 'registration_page.dart';
 import 'rider_portal_page.dart';
 
@@ -83,7 +83,7 @@ class _LoginPageState extends State<LoginPage> {
       });
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => PickupDashboardPage(session: riderSession),
+          builder: (_) => RiderShellPage(session: riderSession),
         ),
       );
     } catch (exception) {
@@ -395,7 +395,7 @@ class _LoginPageState extends State<LoginPage> {
                                           const SizedBox(width: 12),
                                         ],
                                         Text(
-                                          submitting ? 'Signing in...' : 'Sign in',
+                                          submitting ? 'Signing in...' : 'Log in',
                                         ),
                                       ],
                                     ),

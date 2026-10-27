@@ -3,16 +3,15 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import '../widgets/rider_content.dart';
-
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 import '../services/rider_parcel_api.dart';
 import '../services/rider_session.dart';
 import '../services/rider_session_guard.dart';
+import '../theme/rider_theme.dart';
+import '../widgets/rider_content.dart';
 import 'delivery_dashboard_page.dart';
 import 'delivery_history_page.dart';
-import '../theme/rider_theme.dart';
 
 class ParcelScannerPage extends StatefulWidget {
   final RiderSession? session;
@@ -51,7 +50,6 @@ class _ParcelScannerPageState extends State<ParcelScannerPage>
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Permission dialogs themselves change lifecycle; do not fight initial permission setup.
     if (camera?.value.hasCameraPermission != true) return;
     if (state == AppLifecycleState.resumed &&
         !busy &&
@@ -66,9 +64,7 @@ class _ParcelScannerPageState extends State<ParcelScannerPage>
   Future<void> stopCamera() async {
     try {
       await camera?.stop();
-    } catch (_) {
-      /* Already stopped/disposed. */
-    }
+    } catch (_) {}
   }
 
   Future<void> startCamera() async {
@@ -77,7 +73,8 @@ class _ParcelScannerPageState extends State<ParcelScannerPage>
     } catch (_) {
       if (mounted) {
         setState(
-          () => cameraError = 'Camera could not start. Allow camera access in device Settings, then retry or enter the reference.',
+          () => cameraError =
+              'Camera could not start. Allow camera access in device Settings, then retry or enter the reference.',
         );
       }
     }
@@ -121,12 +118,13 @@ class _ParcelScannerPageState extends State<ParcelScannerPage>
     } catch (failure) {
       if (mounted) {
         setState(
-          () => error = failure is SessionFailure ? failure.message : 'Parcel lookup could not be confirmed. Retry or enter the reference.',
+          () => error = failure is SessionFailure
+              ? failure.message
+              : 'Parcel lookup could not be confirmed. Retry or enter the reference.',
         );
       }
     } finally {
       if (mounted) setState(() => busy = false);
-      // Resume requires an explicit scan-again action; a label held in frame cannot resubmit.
     }
   }
 
@@ -139,6 +137,145 @@ class _ParcelScannerPageState extends State<ParcelScannerPage>
     await startCamera();
   }
 
+  Widget _buildScannerIllustration() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          // Corner Guides
+          Padding(
+            padding: const EdgeInsets.all(32),
+            child: SizedBox(
+              width: 240,
+              height: 140,
+              child: Stack(
+                children: [
+                  // Top-left corner
+                  Align(
+                    alignment: Alignment.topLeft,
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: Colors.white, width: 4),
+                          left: BorderSide(color: Colors.white, width: 4),
+                        ),
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Top-right corner
+                  Align(
+                    alignment: Alignment.topRight,
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          top: BorderSide(color: Colors.white, width: 4),
+                          right: BorderSide(color: Colors.white, width: 4),
+                        ),
+                        borderRadius: BorderRadius.only(
+                          topRight: Radius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Bottom-left corner
+                  Align(
+                    alignment: Alignment.bottomLeft,
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(color: Colors.white, width: 4),
+                          left: BorderSide(color: Colors.white, width: 4),
+                        ),
+                        borderRadius: BorderRadius.only(
+                          bottomLeft: Radius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Bottom-right corner
+                  Align(
+                    alignment: Alignment.bottomRight,
+                    child: Container(
+                      width: 32,
+                      height: 32,
+                      decoration: const BoxDecoration(
+                        border: Border(
+                          bottom: BorderSide(color: Colors.white, width: 4),
+                          right: BorderSide(color: Colors.white, width: 4),
+                        ),
+                        borderRadius: BorderRadius.only(
+                          bottomRight: Radius.circular(12),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // Barcode vertical lines
+                  Center(
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: List.generate(24, (i) {
+                        final isThick = i % 3 == 0;
+                        return Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 2),
+                          width: isThick ? 4 : 2,
+                          height: 60,
+                          color: const Color(0xFF64748B),
+                        );
+                      }),
+                    ),
+                  ),
+                  // Horizontal Yellow / Amber Laser Scan Line
+                  Center(
+                    child: Container(
+                      width: 210,
+                      height: 3,
+                      decoration: BoxDecoration(
+                        color: RiderColors.amber,
+                        borderRadius: BorderRadius.circular(2),
+                        boxShadow: [
+                          BoxShadow(
+                            color: RiderColors.amber.withValues(alpha: 0.6),
+                            blurRadius: 6,
+                            spreadRadius: 1,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          // Caption at bottom
+          Positioned(
+            bottom: 16,
+            child: Text(
+              'Camera scanning is available in the Android and iOS app.',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.9),
+                fontSize: 12.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: RiderColors.background,
@@ -146,38 +283,33 @@ class _ParcelScannerPageState extends State<ParcelScannerPage>
     body: ListView(
       padding: riderPagePadding(context, maxWidth: 640),
       children: [
-        Text(
+        const SizedBox(height: 8),
+        const Text(
           'Find your assigned delivery',
-          style: Theme.of(context).textTheme.headlineSmall
-              ?.copyWith(fontWeight: FontWeight.w700),
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.w800,
+            color: RiderColors.text,
+          ),
         ),
         const SizedBox(height: 8),
         const Text(
-          'Place the parcel QR code or barcode inside the guide. Only your assigned deliveries can be opened.',
+          'Place the parcel barcode inside the guide. Only deliveries assigned to you can be opened.',
+          style: TextStyle(
+            fontSize: 14,
+            color: RiderColors.textSecondary,
+            height: 1.35,
+          ),
         ),
         const SizedBox(height: 20),
         ClipRRect(
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(24),
           child: SizedBox(
-            height: ((MediaQuery.sizeOf(context).width - 40) / 1.2).clamp(
-              180.0,
-              320.0,
-            ),
+            height: 280,
             child: widget.scannerBuilder != null
                 ? widget.scannerBuilder!(detected)
                 : !nativeCamera
-                ? const ColoredBox(
-                    color: Color(0xffeaf4f4),
-                    child: Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Text(
-                          'Use the Android or iOS app for camera scanning. Enter the parcel reference below on this device.',
-                          textAlign: TextAlign.center,
-                        ),
-                      ),
-                    ),
-                  )
+                ? _buildScannerIllustration()
                 : Stack(
                     fit: StackFit.expand,
                     children: [
@@ -193,21 +325,8 @@ class _ParcelScannerPageState extends State<ParcelScannerPage>
                             }
                           }
                         },
-                        errorBuilder: (_, failure) => ColoredBox(
-                          color: const Color(0xffeaf4f4),
-                          child: Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Text(
-                                failure.errorCode ==
-                                        MobileScannerErrorCode.permissionDenied
-                                    ? 'Camera access is denied. Allow Camera in device Settings, then retry. You can also enter the reference below.'
-                                    : 'Camera is unavailable. Retry or enter the parcel reference below.',
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
-                        ),
+                        errorBuilder: (_, failure) =>
+                            _buildScannerIllustration(),
                       ),
                       IgnorePointer(
                         child: Center(
@@ -217,7 +336,7 @@ class _ParcelScannerPageState extends State<ParcelScannerPage>
                             child: DecoratedBox(
                               decoration: BoxDecoration(
                                 border: Border.all(
-                                  color: RiderColors.teal,
+                                  color: RiderColors.amber,
                                   width: 3,
                                 ),
                                 borderRadius: BorderRadius.circular(16),
@@ -242,14 +361,22 @@ class _ParcelScannerPageState extends State<ParcelScannerPage>
         if (busy)
           const Padding(
             padding: EdgeInsets.only(top: 12),
-            child: Text('Checking your assignment...'),
+            child: Center(
+              child: Text(
+                'Checking your assignment...',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: RiderColors.teal,
+                ),
+              ),
+            ),
           ),
         if (cameraError != null)
           Padding(
             padding: const EdgeInsets.only(top: 12),
             child: Text(
               cameraError!,
-              style: const TextStyle(color: Color(0xff9b3125)),
+              style: const TextStyle(color: RiderColors.danger),
             ),
           ),
         if (error != null)
@@ -257,51 +384,133 @@ class _ParcelScannerPageState extends State<ParcelScannerPage>
             padding: const EdgeInsets.only(top: 12),
             child: Text(
               error!,
-              style: const TextStyle(color: Color(0xff9b3125)),
+              style: const TextStyle(
+                color: RiderColors.danger,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         if (nativeCamera || widget.scannerBuilder != null)
-          TextButton.icon(
-            onPressed: busy ? null : scanAgain,
-            icon: const Icon(Icons.qr_code_scanner),
-            label: Text(scanLocked ? 'Scan another parcel' : 'Retry camera'),
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: TextButton.icon(
+              onPressed: busy ? null : scanAgain,
+              icon: const Icon(Icons.qr_code_scanner),
+              label: Text(scanLocked ? 'Scan another parcel' : 'Retry camera'),
+            ),
           ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 20),
+        // Divider "or enter it here"
+        Row(
+          children: const [
+            Expanded(child: Divider(color: RiderColors.border, thickness: 1)),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                'or enter it here',
+                style: TextStyle(
+                  color: RiderColors.textSecondary,
+                  fontWeight: FontWeight.w500,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+            Expanded(child: Divider(color: RiderColors.border, thickness: 1)),
+          ],
+        ),
+        const SizedBox(height: 20),
+        const Text(
+          'Parcel reference',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+            color: RiderColors.text,
+          ),
+        ),
+        const SizedBox(height: 8),
         TextField(
           controller: reference,
           enabled: !busy,
           textCapitalization: TextCapitalization.characters,
           maxLength: 50,
-          decoration: const InputDecoration(
-            labelText: 'Parcel reference',
+          decoration: InputDecoration(
             hintText: 'ITEM-123',
-            prefixIcon: Icon(Icons.inventory_2_outlined),
+            prefixIcon: const Icon(
+              Icons.inventory_2_outlined,
+              color: RiderColors.textSecondary,
+            ),
+            filled: true,
+            fillColor: Colors.white,
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 14,
+            ),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: RiderColors.border),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: RiderColors.border),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(
+                color: RiderColors.teal,
+                width: 1.5,
+              ),
+            ),
           ),
           onSubmitted: busy ? null : (_) => lookup(),
         ),
-        FilledButton.icon(
-          onPressed: busy ? null : lookup,
-          icon: const Icon(Icons.search),
-          label: const Text('Open delivery details'),
+        const SizedBox(height: 16),
+        SizedBox(
+          width: double.infinity,
+          height: 52,
+          child: FilledButton.icon(
+            onPressed: busy ? null : lookup,
+            icon: const Icon(Icons.search, size: 20),
+            label: const Text(
+              'Open delivery details',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+            ),
+            style: FilledButton.styleFrom(
+              backgroundColor: RiderColors.teal,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
         ),
-        TextButton(
-          onPressed: busy
-              ? null
-              : () async {
-                  await stopCamera();
-                  if (mounted) setState(() => scanLocked = true);
-                  if (!context.mounted) return;
-                  await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          DeliveryHistoryPage(session: riderSession),
-                    ),
-                  );
-                  if (mounted) setState(() => scanLocked = true);
-                },
-          child: const Text('Delivery History'),
+        const SizedBox(height: 12),
+        Center(
+          child: TextButton(
+            onPressed: busy
+                ? null
+                : () async {
+                    await stopCamera();
+                    if (mounted) setState(() => scanLocked = true);
+                    if (!context.mounted) return;
+                    await Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) =>
+                            DeliveryHistoryPage(session: riderSession),
+                      ),
+                    );
+                    if (mounted) setState(() => scanLocked = true);
+                  },
+            child: const Text(
+              'Delivery history',
+              style: TextStyle(
+                color: RiderColors.teal,
+                fontWeight: FontWeight.w700,
+                fontSize: 15,
+              ),
+            ),
+          ),
         ),
+        const SizedBox(height: 24),
       ],
     ),
   );

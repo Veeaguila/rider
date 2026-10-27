@@ -196,81 +196,115 @@ class _RiderChatPageState extends State<RiderChatPage>
             borderRadius: BorderRadius.circular(16),
             border: Border.all(color: RiderColors.border),
           ),
-          child: DropdownButtonFormField<int>(
-            key: ValueKey('recipient-$recipientId-${recipients.length}'),
-            initialValue: recipientId,
-            isExpanded: true,
-            decoration: const InputDecoration(labelText: 'New message to'),
-            items: recipients
-                .map(
-                  (r) => DropdownMenuItem<int>(
-                    value: (r['id'] as num).toInt(),
-                    child: Text(r['name'].toString()),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                'New message to',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: RiderColors.text,
+                ),
+              ),
+              const SizedBox(height: 8),
+              DropdownButtonFormField<int>(
+                key: ValueKey('recipient-$recipientId-${recipients.length}'),
+                initialValue: recipientId,
+                isExpanded: true,
+                decoration: InputDecoration(
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 12,
                   ),
-                )
-                .toList(),
-            onChanged: sending || opening
-                ? null
-                : (id) => setState(() {
-                    recipientId = id;
-                    conversationId = null;
-                    messages = [];
-                    revision++;
-                  }),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: RiderColors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: const BorderSide(color: RiderColors.border),
+                  ),
+                ),
+                items: recipients
+                    .map(
+                      (r) => DropdownMenuItem<int>(
+                        value: (r['id'] as num).toInt(),
+                        child: Text(
+                          r['name'].toString(),
+                          style: const TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    )
+                    .toList(),
+                onChanged: sending || opening
+                    ? null
+                    : (id) => setState(() {
+                        recipientId = id;
+                        conversationId = null;
+                        messages = [];
+                        revision++;
+                      }),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 12),
         for (final row in conversations)
           Container(
-            margin: const EdgeInsets.only(bottom: 8),
+            margin: const EdgeInsets.only(bottom: 10),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: const Color(0xFFE6F7F7),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: RiderColors.border),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-                  blurRadius: 6,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+              border: Border.all(color: const Color(0xFFA7F3D0)),
             ),
             child: Material(
               color: Colors.transparent,
               child: ListTile(
                 leading: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: RiderColors.teal.withValues(alpha: 0.1),
+                  width: 44,
+                  height: 44,
+                  decoration: const BoxDecoration(
+                    color: RiderColors.teal,
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(
-                    Icons.person_outline_rounded,
-                    color: RiderColors.teal,
-                    size: 20,
+                    Icons.home_work_outlined,
+                    color: Colors.white,
+                    size: 22,
                   ),
                 ),
                 title: Text(
-                  row['recipient']?['name']?.toString() ?? 'Conversation',
-                  style: const TextStyle(fontWeight: FontWeight.w700),
+                  row['recipient']?['name']?.toString() ?? 'Alona Logistics Hub',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                    color: RiderColors.text,
+                  ),
                 ),
-                subtitle: Text(row['latest_message']?['body']?.toString() ?? ''),
+                subtitle: Text(
+                  row['latest_message']?['body']?.toString() ??
+                      'Your sorting center',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: RiderColors.textSecondary,
+                  ),
+                ),
                 trailing: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
-                    color: (row['unread_count'] ?? 0) > 0
-                        ? RiderColors.redBadge
-                        : const Color(0xFFF3F4F6),
+                    color: RiderColors.amber,
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
                     '${row['unread_count'] ?? 0} unread',
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: (row['unread_count'] ?? 0) > 0
-                          ? RiderColors.redBadgeText
-                          : RiderColors.textSecondary,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF78350F),
                     ),
                   ),
                 ),
@@ -279,13 +313,27 @@ class _RiderChatPageState extends State<RiderChatPage>
             ),
           ),
         if (opening) const LinearProgressIndicator(),
+        if (messages.isNotEmpty)
+          const Padding(
+            padding: EdgeInsets.symmetric(vertical: 12),
+            child: Center(
+              child: Text(
+                'Today',
+                style: TextStyle(
+                  color: RiderColors.textSecondary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
         for (final message in messages)
           Align(
             alignment: message['is_mine'] == true
                 ? Alignment.centerRight
                 : Alignment.centerLeft,
             child: Container(
-              margin: const EdgeInsets.symmetric(vertical: 4),
+              margin: const EdgeInsets.symmetric(vertical: 6),
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
               constraints: BoxConstraints(
                 maxWidth: MediaQuery.of(context).size.width * 0.78,
@@ -308,23 +356,41 @@ class _RiderChatPageState extends State<RiderChatPage>
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 4,
+                    blurRadius: 6,
                     offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: Text(
-                '${message['sender']?['name'] ?? 'Rider'}: ${message['body']}',
-                style: TextStyle(
-                  color: message['is_mine'] == true
-                      ? Colors.white
-                      : RiderColors.text,
-                  fontSize: 14,
-                ),
+              child: Column(
+                crossAxisAlignment: message['is_mine'] == true
+                    ? CrossAxisAlignment.end
+                    : CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${message['sender']?['name'] ?? 'Rider'}: ${message['body']}',
+                    style: TextStyle(
+                      color: message['is_mine'] == true
+                          ? Colors.white
+                          : RiderColors.text,
+                      fontSize: 14,
+                      height: 1.3,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    message['is_mine'] == true ? 'Seen' : 'Today',
+                    style: TextStyle(
+                      color: message['is_mine'] == true
+                          ? Colors.white.withValues(alpha: 0.7)
+                          : RiderColors.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 16),
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -335,16 +401,59 @@ class _RiderChatPageState extends State<RiderChatPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
+              const Text(
+                'Message',
+                style: TextStyle(
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                  color: RiderColors.text,
+                ),
+              ),
+              const SizedBox(height: 8),
               TextField(
                 controller: text,
                 maxLength: 4000,
                 maxLines: 3,
-                decoration: const InputDecoration(labelText: 'Message'),
+                decoration: InputDecoration(
+                  hintText: 'Write to the Logistics Hub',
+                  contentPadding: const EdgeInsets.all(14),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: RiderColors.border),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(color: RiderColors.border),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                    borderSide: const BorderSide(
+                      color: RiderColors.teal,
+                      width: 1.5,
+                    ),
+                  ),
+                ),
               ),
               const SizedBox(height: 12),
-              FilledButton(
-                onPressed: sending || opening ? null : send,
-                child: Text(sending ? 'Sending...' : 'Send message'),
+              SizedBox(
+                height: 50,
+                child: FilledButton.icon(
+                  onPressed: sending || opening ? null : send,
+                  icon: const Icon(Icons.send_rounded, size: 18),
+                  label: Text(
+                    sending ? 'Sending...' : 'Send message',
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: RiderColors.teal,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                  ),
+                ),
               ),
             ],
           ),

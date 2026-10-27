@@ -144,6 +144,8 @@ void main() {
       300,
       scrollable: find.byType(Scrollable).first,
     );
+    await tester.ensureVisible(next);
+    await tester.pumpAndSettle();
     await tester.tap(next);
     await tester.pumpAndSettle();
     expect(find.text('Order ITEM-43'), findsOneWidget);

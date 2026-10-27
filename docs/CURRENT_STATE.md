@@ -1,5 +1,10 @@
-﻿# Current state
+# Current state
 
+- **2026-10-24 Modern Mobile UI Redesign (in-progress):**
+  - Updated Rider shell navigation with modern floating pill-style bottom navigation bar (`RiderBottomNav`), new vibrant teal-and-amber theme accents, and curved gradient headers.
+  - Redesigned Pickup Details and Delivery Details in `lib/pages/order_detail_pages.dart` matching modern multi-step verification cards, seller/customer contact shortcuts, parcel checkboxes, and confirmation buttons.
+  - Redesigned Pickups Dashboard (`lib/pages/pickup_dashboard_page.dart`) and Deliveries Dashboard (`lib/pages/delivery_dashboard_page.dart`) with clean card elevations, status badges, delivery notifications, responsive wrap layouts for 320px viewports, and custom action buttons.
+  - Zero analyzer errors across `rider`. Delivery workflows, RTS workflows, narrow viewport layout tests, and confirmation tests verified passing. Next session to wrap up duplicate tap test assertion handling on the pickups queue.
 - **2026-10-20 completed Rider workflow source:** pickup assignment acknowledgment,
   transit and paginated history; Buyer delivery OTP, explicit retries and return-to-
   Seller pickup/handover/history; COD collection/remittance evidence and supervised

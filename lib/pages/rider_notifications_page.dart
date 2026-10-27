@@ -2,18 +2,17 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
-import '../widgets/rider_content.dart';
-
+import '../services/rider_portal_api.dart';
 import '../services/rider_session.dart';
 import '../services/rider_session_guard.dart';
-import '../services/rider_portal_api.dart';
-import 'rider_portal_page.dart'
-    show RiderAccountPage, RiderChatPage, portalError;
-import 'pickup_dashboard_page.dart';
+import '../theme/rider_theme.dart';
+import '../widgets/rider_content.dart';
 import 'delivery_dashboard_page.dart';
 import 'delivery_history_page.dart';
+import 'pickup_dashboard_page.dart';
 import 'profit_dashboard_page.dart';
-import '../theme/rider_theme.dart';
+import 'rider_portal_page.dart'
+    show RiderAccountPage, RiderChatPage, portalError;
 
 class RiderNotificationsPage extends StatefulWidget {
   final RiderSession? session;
@@ -33,6 +32,7 @@ class _RiderNotificationsPageState extends State<RiderNotificationsPage>
   int? unread;
   int page = 1, lastPage = 1;
   String? error;
+
   @override
   void initState() {
     super.initState();
@@ -143,11 +143,38 @@ class _RiderNotificationsPageState extends State<RiderNotificationsPage>
     }
   }
 
+  Future<void> markAllAsRead() async {
+    for (final row in rows) {
+      if (row['read_at'] == null) {
+        try {
+          await api.request(
+            'rider/notifications/${row['id']}/read',
+            method: 'POST',
+            ready: false,
+          );
+        } catch (_) {}
+      }
+    }
+    if (mounted) await load();
+  }
+
   String timestamp(dynamic value) {
     final date = DateTime.tryParse(value?.toString() ?? '')?.toLocal();
-    return date == null
-        ? 'Time unavailable'
-        : '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} ${TimeOfDay.fromDateTime(date).format(context)}';
+    if (date == null) return 'Time unavailable';
+    final timeStr = TimeOfDay.fromDateTime(date).format(context);
+    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')} · $timeStr';
+  }
+
+  IconData _iconForTitle(String title) {
+    final lower = title.toLowerCase();
+    if (lower.contains('pickup')) return Icons.check;
+    if (lower.contains('delivery') || lower.contains('route')) {
+      return Icons.local_shipping_outlined;
+    }
+    if (lower.contains('payout') || lower.contains('earn')) {
+      return Icons.attach_money;
+    }
+    return Icons.notifications_none;
   }
 
   @override
@@ -169,109 +196,208 @@ class _RiderNotificationsPageState extends State<RiderNotificationsPage>
         padding: riderPagePadding(context, maxWidth: 720),
         physics: const AlwaysScrollableScrollPhysics(),
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: RiderColors.border),
-            ),
-            child: Row(
-              children: [
-                const Icon(
-                  Icons.notifications_active_outlined,
-                  size: 20,
-                  color: RiderColors.teal,
+          const SizedBox(height: 8),
+          // Header Row matching Screen 2
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                unread == null
+                    ? 'Unread count unavailable'
+                    : '$unread unread notifications',
+                style: const TextStyle(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 16,
+                  color: RiderColors.text,
                 ),
-                const SizedBox(width: 10),
-                Text(
-                  unread == null
-                      ? 'Unread count unavailable'
-                      : '$unread unread notifications',
-                  style: const TextStyle(
+              ),
+              GestureDetector(
+                onTap: loading || opening ? null : markAllAsRead,
+                child: const Text(
+                  'Mark all as read',
+                  style: TextStyle(
+                    color: RiderColors.teal,
                     fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                    color: RiderColors.text,
+                    fontSize: 14,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
           if (loading || opening) const LinearProgressIndicator(),
           if (error != null)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: Text(error!, style: const TextStyle(color: RiderColors.danger)),
+              child: Text(
+                error!,
+                style: const TextStyle(color: RiderColors.danger),
+              ),
             ),
           if (!loading && rows.isEmpty && error == null)
             const Padding(
-              padding: EdgeInsets.only(top: 16),
-              child: Text('You are up to date.'),
-            ),
-          for (final row in rows)
-            Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: row['read_at'] == null
-                      ? RiderColors.teal.withValues(alpha: 0.3)
-                      : RiderColors.border,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.02),
-                    blurRadius: 6,
-                    offset: const Offset(0, 2),
+              padding: EdgeInsets.symmetric(vertical: 32),
+              child: Center(
+                child: Text(
+                  'You are up to date.',
+                  style: TextStyle(
+                    color: RiderColors.textSecondary,
+                    fontWeight: FontWeight.w500,
                   ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: ListTile(
-                  leading: Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: row['read_at'] == null
-                          ? RiderColors.mintBadge
-                          : const Color(0xFFF3F4F6),
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      row['read_at'] == null
-                          ? Icons.notifications_active_outlined
-                          : Icons.notifications_none,
-                      color: row['read_at'] == null
-                          ? RiderColors.mintBadgeText
-                          : RiderColors.textSecondary,
-                      size: 20,
-                    ),
-                  ),
-                  title: Text(
-                    row['title'].toString(),
-                    style: TextStyle(
-                      fontWeight: row['read_at'] == null
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                    ),
-                  ),
-                  subtitle: Text(
-                    '${row['body']}\n${timestamp(row['created_at'])}\n${row['read_at'] == null ? 'Unread' : 'Read'}',
-                    style: const TextStyle(fontSize: 13),
-                  ),
-                  onTap: loading || opening ? null : () => open(row),
                 ),
               ),
             ),
+          for (final row in rows) ...[
+            Builder(
+              builder: (context) {
+                final isUnread = row['read_at'] == null;
+                final title = row['title'].toString();
+                final body = row['body'].toString();
+                final timeLabel = timestamp(row['created_at']);
+                final icon = _iconForTitle(title);
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: isUnread ? const Color(0xFFE6F7F7) : Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: isUnread
+                          ? const Color(0xFFA7F3D0)
+                          : RiderColors.border,
+                      width: 1,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.02),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: loading || opening ? null : () => open(row),
+                      child: Padding(
+                        padding: const EdgeInsets.all(16),
+                        child: Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Circular icon
+                            Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(
+                                color: isUnread
+                                    ? RiderColors.teal
+                                    : const Color(0xFFE0F2FE),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                icon,
+                                color: isUnread
+                                    ? Colors.white
+                                    : RiderColors.teal,
+                                size: 22,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          title,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w700,
+                                            fontSize: 16,
+                                            color: RiderColors.text,
+                                          ),
+                                        ),
+                                      ),
+                                      if (isUnread)
+                                        Container(
+                                          width: 9,
+                                          height: 9,
+                                          margin: const EdgeInsets.only(
+                                            left: 8,
+                                          ),
+                                          decoration: const BoxDecoration(
+                                            color: RiderColors.amber,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    body,
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: isUnread
+                                          ? RiderColors.text
+                                          : RiderColors.textSecondary,
+                                      height: 1.3,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Text(
+                                    '$timeLabel${isUnread ? ' · Unread' : ''}',
+                                    style: const TextStyle(
+                                      fontSize: 12,
+                                      color: RiderColors.textSecondary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
           if (page < lastPage)
-            TextButton(
-              onPressed: loading || opening ? null : () => load(more: true),
-              child: const Text('Load older notifications'),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: Center(
+                child: TextButton(
+                  onPressed: loading || opening ? null : () => load(more: true),
+                  child: const Text('Load older notifications'),
+                ),
+              ),
             ),
-          const SizedBox(height: 12),
-          const Text('Updates while this screen is open.'),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(
+                  color: RiderColors.success,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                'Updates while this screen is open.',
+                style: TextStyle(
+                  color: RiderColors.textSecondary,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
         ],
       ),
     ),

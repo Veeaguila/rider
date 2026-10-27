@@ -50,8 +50,10 @@ void main() {
         isTrue,
       );
 
-      await tester.ensureVisible(find.text('Sign in'));
-      await tester.tap(find.text('Sign in'));
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle(const Duration(seconds: 3));
+      await tester.ensureVisible(find.text('Log in'));
+      await tester.tap(find.text('Log in'));
       await tester.pumpAndSettle();
       expect(find.text('Enter a valid email'), findsOneWidget);
       expect(tester.takeException(), isNull);
